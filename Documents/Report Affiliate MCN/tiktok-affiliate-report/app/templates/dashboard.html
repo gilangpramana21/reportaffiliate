@@ -1,0 +1,525 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-speedometer2 me-2 text-success"></i>Dashboard</h4>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-success btn-sm" onclick="loadDashboard()">
+      <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+    </button>
+    <button class="btn btn-accent btn-sm" data-bs-toggle="modal" data-bs-target="#batchModal">
+      <i class="bi bi-collection me-1"></i>Batch Generate
+    </button>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4" id="summaryCards">
+  <div class="col-sm-3">
+    <div class="card text-center">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-success" id="totalBrands">—</div>
+        <div class="small text-muted">Total Brand</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-3">
+    <div class="card text-center">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-primary" id="totalReports">—</div>
+        <div class="small text-muted">Total Laporan</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-3">
+    <div class="card text-center">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-warning" id="brandsWithConfig">—</div>
+        <div class="small text-muted">Brand Punya Config</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-3">
+    <div class="card text-center">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-info" id="brandsActive">—</div>
+        <div class="small text-muted">Brand Aktif (ada laporan)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Brand Table -->
+<div class="card mb-4">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-building me-1"></i>Ringkasan Per Brand
+  </div>
+  <div class="card-body p-0">
+    <div id="dashLoading" class="text-center py-4">
+      <div class="spinner-border text-success spinner-border-sm"></div>
+      <span class="ms-2 text-muted small">Memuat data...</span>
+    </div>
+    <div id="dashEmpty" class="text-center py-4 d-none">
+      <i class="bi bi-inbox text-muted fs-3"></i>
+      <p class="text-muted mt-2">Belum ada brand. <a href="/brands">Tambah brand</a> terlebih dahulu.</p>
+    </div>
+    <div id="dashTable" class="d-none">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Brand</th>
+              <th class="text-center">SKU</th>
+              <th class="text-center">Config</th>
+              <th class="text-center">Total Laporan</th>
+              <th>Batch Terakhir</th>
+              <th>Periode Terakhir</th>
+              <th>Generate Terakhir</th>
+              <th class="text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="dashTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Webhook Card -->
+<div class="card mb-4">
+  <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-bell me-1"></i>Webhook Notifikasi</span>
+    <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#webhookModal">
+      <i class="bi bi-plus me-1"></i>Tambah Webhook
+    </button>
+  </div>
+  <div class="card-body p-0">
+    <div id="webhookList">
+      <div class="text-center py-3 text-muted small">Memuat...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Batch Generate Modal -->
+<div class="modal fade" id="batchModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold"><i class="bi bi-collection me-2"></i>Batch Generate Laporan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">
+          Generate laporan untuk beberapa brand sekaligus. Setiap brand harus sudah punya mapping data yang tersimpan.
+        </p>
+
+        <div class="mb-3 row g-2">
+          <div class="col-sm-4">
+            <label class="form-label fw-semibold">Nomor Batch</label>
+            <input type="text" id="batchBatchNumber" class="form-control" placeholder="Contoh: 6" />
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label fw-semibold">Periode Mulai</label>
+            <input type="date" id="batchPeriodStart" class="form-control" />
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label fw-semibold">Periode Akhir</label>
+            <input type="date" id="batchPeriodEnd" class="form-control" />
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Pilih Brand</label>
+          <div id="batchBrandList" class="border rounded p-2" style="max-height:200px;overflow-y:auto">
+            <div class="text-muted small text-center py-2">Memuat brand...</div>
+          </div>
+        </div>
+
+        <div id="batchError" class="alert alert-danger d-none"></div>
+        <div id="batchProgress" class="d-none">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="small fw-semibold" id="batchProgressLabel">Memproses...</span>
+            <span class="small text-muted" id="batchProgressCount"></span>
+          </div>
+          <div class="progress mb-2" style="height:8px">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                 id="batchProgressBar" style="width:0%"></div>
+          </div>
+        </div>
+        <div id="batchResults" class="d-none">
+          <div class="alert alert-success">
+            <i class="bi bi-check-circle me-1"></i>
+            <strong id="batchResultSummary"></strong>
+          </div>
+          <div id="batchResultList"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-accent" id="btnStartBatch" onclick="startBatch()">
+          <i class="bi bi-play-fill me-1"></i>Mulai Generate
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Webhook Modal -->
+<div class="modal fade" id="webhookModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Tambah Webhook</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">URL Webhook <span class="text-danger">*</span></label>
+          <input type="url" id="whUrl" class="form-control" placeholder="https://your-server.com/webhook" />
+          <div class="form-text">URL yang akan menerima POST request saat laporan selesai dibuat.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Secret (opsional)</label>
+          <input type="text" id="whSecret" class="form-control" placeholder="Untuk verifikasi HMAC-SHA256" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Events</label>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="evtReportCreated" checked />
+            <label class="form-check-label" for="evtReportCreated">
+              <code>report.created</code> — saat satu laporan selesai
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="evtBatchCompleted" />
+            <label class="form-check-label" for="evtBatchCompleted">
+              <code>batch.completed</code> — saat batch generate selesai
+            </label>
+          </div>
+        </div>
+        <div id="whError" class="alert alert-danger d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-accent" onclick="saveWebhook()">
+          <i class="bi bi-save me-1"></i>Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let _dashData = [];
+let _allBrands = [];
+let _batchJobId = null;
+let _batchInterval = null;
+
+async function loadDashboard() {
+  document.getElementById('dashLoading').classList.remove('d-none');
+  document.getElementById('dashTable').classList.add('d-none');
+  document.getElementById('dashEmpty').classList.add('d-none');
+
+  try {
+    const [dashRes, brandsRes] = await Promise.all([
+      fetch('/api/dashboard'),
+      fetch('/api/brands'),
+    ]);
+    _dashData = await dashRes.json();
+    _allBrands = await brandsRes.json();
+
+    // Summary cards
+    const totalBrands = _dashData.length;
+    const totalReports = _dashData.reduce((s, b) => s + (b.total_reports || 0), 0);
+    const withConfig = _dashData.filter(b => b.has_column_config).length;
+    const active = _dashData.filter(b => b.total_reports > 0).length;
+
+    document.getElementById('totalBrands').textContent = totalBrands;
+    document.getElementById('totalReports').textContent = totalReports;
+    document.getElementById('brandsWithConfig').textContent = withConfig;
+    document.getElementById('brandsActive').textContent = active;
+
+    document.getElementById('dashLoading').classList.add('d-none');
+
+    if (_dashData.length === 0) {
+      document.getElementById('dashEmpty').classList.remove('d-none');
+      return;
+    }
+
+    const tbody = document.getElementById('dashTableBody');
+    tbody.innerHTML = _dashData.map(b => `
+      <tr>
+        <td class="fw-semibold">${esc(b.brand_name)}</td>
+        <td class="text-center"><span class="badge bg-secondary">${b.sku_count}</span></td>
+        <td class="text-center">
+          ${b.has_column_config
+            ? '<span class="badge bg-success">✓</span>'
+            : '<span class="badge bg-light text-muted">—</span>'}
+        </td>
+        <td class="text-center">
+          <span class="badge bg-primary">${b.total_reports}</span>
+        </td>
+        <td>${b.latest_batch ? `<span class="badge bg-secondary">Batch ${esc(b.latest_batch)}</span>` : '—'}</td>
+        <td class="small text-muted">${b.latest_period || '—'}</td>
+        <td class="small text-muted">${b.latest_generated_at ? fmtDate(b.latest_generated_at) : '—'}</td>
+        <td class="text-center">
+          <div class="btn-group btn-group-sm">
+            ${b.latest_report_id ? `
+              <a href="/api/reports/${b.latest_report_id}/download" class="btn btn-outline-success" target="_blank" title="Download PDF terakhir">
+                <i class="bi bi-file-pdf"></i>
+              </a>
+              <a href="/api/reports/${b.latest_report_id}/download-ppt" class="btn btn-outline-primary" target="_blank" title="Download PPT terakhir">
+                <i class="bi bi-file-earmark-ppt"></i>
+              </a>` : ''}
+            <a href="/" class="btn btn-outline-secondary" title="Buat laporan baru">
+              <i class="bi bi-plus"></i>
+            </a>
+          </div>
+        </td>
+      </tr>`).join('');
+
+    document.getElementById('dashTable').classList.remove('d-none');
+
+    // Populate batch brand list
+    renderBatchBrandList();
+
+  } catch (err) {
+    document.getElementById('dashLoading').classList.add('d-none');
+    document.getElementById('dashEmpty').innerHTML = `<p class="text-danger">Error: ${err.message}</p>`;
+    document.getElementById('dashEmpty').classList.remove('d-none');
+  }
+
+  loadWebhooks();
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function fmtDate(s) {
+  try { return new Date(s).toLocaleString('id-ID', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+  catch(_) { return s; }
+}
+
+// ── Batch Generate ────────────────────────────────────────────────────────────
+
+function renderBatchBrandList() {
+  const el = document.getElementById('batchBrandList');
+  if (!_allBrands.length) {
+    el.innerHTML = '<div class="text-muted small text-center py-2">Tidak ada brand.</div>';
+    return;
+  }
+  el.innerHTML = _allBrands.map(b => `
+    <div class="form-check">
+      <input class="form-check-input batch-brand-check" type="checkbox"
+             id="bb_${b.id}" value="${b.id}" data-name="${esc(b.name)}" />
+      <label class="form-check-label" for="bb_${b.id}">
+        <strong>${esc(b.name)}</strong>
+        ${b.has_column_config ? '<span class="badge bg-success ms-1" style="font-size:.65rem">Config ✓</span>' : ''}
+        <span class="text-muted small ms-1">(${b.sku_list?.length || 0} SKU)</span>
+      </label>
+    </div>`).join('');
+}
+
+async function startBatch() {
+  const batchNumber = document.getElementById('batchBatchNumber').value.trim();
+  const periodStart = document.getElementById('batchPeriodStart').value;
+  const periodEnd = document.getElementById('batchPeriodEnd').value;
+  const errEl = document.getElementById('batchError');
+  errEl.classList.add('d-none');
+
+  const selectedBrands = [...document.querySelectorAll('.batch-brand-check:checked')]
+    .map(el => el.dataset.name);
+
+  if (!batchNumber || !periodStart || !periodEnd) {
+    errEl.textContent = 'Nomor batch dan periode wajib diisi.';
+    errEl.classList.remove('d-none');
+    return;
+  }
+  if (selectedBrands.length === 0) {
+    errEl.textContent = 'Pilih minimal satu brand.';
+    errEl.classList.remove('d-none');
+    return;
+  }
+
+  // Build jobs — pakai latest mapping per brand
+  const jobs = [];
+  for (const brandName of selectedBrands) {
+    try {
+      const r = await fetch('/api/mapping/latest');
+      const d = await r.json();
+      if (r.ok && d.brand_name === brandName) {
+        jobs.push({
+          mapping_id: d.mapping_id,
+          brand_name: brandName,
+          batch_number: batchNumber,
+          period_start: periodStart,
+          period_end: periodEnd,
+        });
+      } else {
+        // Cari mapping untuk brand ini
+        const allMappings = await (await fetch('/api/mapping/list')).json().catch(() => ({ mappings: [] }));
+        const brandMapping = (allMappings.mappings || []).find(m => m.brand_name === brandName);
+        if (brandMapping) {
+          jobs.push({
+            mapping_id: brandMapping.mapping_id,
+            brand_name: brandName,
+            batch_number: batchNumber,
+            period_start: periodStart,
+            period_end: periodEnd,
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  if (jobs.length === 0) {
+    errEl.textContent = 'Tidak ada mapping data yang ditemukan untuk brand yang dipilih. Upload data terlebih dahulu.';
+    errEl.classList.remove('d-none');
+    return;
+  }
+
+  document.getElementById('btnStartBatch').disabled = true;
+  document.getElementById('batchProgress').classList.remove('d-none');
+  document.getElementById('batchResults').classList.add('d-none');
+  document.getElementById('batchProgressBar').style.width = '0%';
+  document.getElementById('batchProgressLabel').textContent = `Memproses 0/${jobs.length} laporan...`;
+
+  const res = await fetch('/api/reports/batch-generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jobs }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    errEl.textContent = data.error || 'Gagal memulai batch.';
+    errEl.classList.remove('d-none');
+    document.getElementById('btnStartBatch').disabled = false;
+    return;
+  }
+
+  _batchJobId = data.batch_id;
+  _batchInterval = setInterval(pollBatch, 2000);
+}
+
+async function pollBatch() {
+  if (!_batchJobId) return;
+  const res = await fetch(`/api/reports/batch-status/${_batchJobId}`);
+  const data = await res.json();
+
+  const pct = data.total > 0 ? Math.round(data.done / data.total * 100) : 0;
+  document.getElementById('batchProgressBar').style.width = pct + '%';
+  document.getElementById('batchProgressLabel').textContent = `Memproses ${data.done}/${data.total} laporan...`;
+  document.getElementById('batchProgressCount').textContent = `${pct}%`;
+
+  if (data.status === 'done') {
+    clearInterval(_batchInterval);
+    document.getElementById('btnStartBatch').disabled = false;
+    document.getElementById('batchProgressBar').classList.remove('progress-bar-animated');
+
+    const ok = data.results?.length || 0;
+    const err = data.errors?.length || 0;
+    document.getElementById('batchResultSummary').textContent =
+      `${ok} laporan berhasil dibuat${err ? `, ${err} gagal` : ''}.`;
+
+    const listEl = document.getElementById('batchResultList');
+    listEl.innerHTML = (data.results || []).map(r => `
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge bg-success">✓</span>
+        <span class="fw-semibold">${esc(r.brand_name)}</span>
+        <a href="${r.pdf_url}" class="btn btn-xs btn-outline-success btn-sm" target="_blank">PDF</a>
+        ${r.ppt_url ? `<a href="${r.ppt_url}" class="btn btn-xs btn-outline-primary btn-sm" target="_blank">PPT</a>` : ''}
+      </div>`).join('') +
+      (data.errors || []).map(e => `
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge bg-danger">✗</span>
+        <span class="fw-semibold">${esc(e.brand)}</span>
+        <span class="text-danger small">${esc(e.error)}</span>
+      </div>`).join('');
+
+    document.getElementById('batchResults').classList.remove('d-none');
+    loadDashboard();
+  }
+}
+
+// ── Webhooks ──────────────────────────────────────────────────────────────────
+
+async function loadWebhooks() {
+  const res = await fetch('/api/webhooks');
+  const data = await res.json();
+  const el = document.getElementById('webhookList');
+
+  if (!data.length) {
+    el.innerHTML = '<div class="text-muted small text-center py-3">Belum ada webhook. Tambah webhook untuk mendapat notifikasi saat laporan selesai.</div>';
+    return;
+  }
+
+  el.innerHTML = `<div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead class="table-light"><tr><th>URL</th><th>Events</th><th>Status</th><th class="text-center">Aksi</th></tr></thead>
+    <tbody>${data.map(w => `
+      <tr>
+        <td class="font-monospace small">${esc(w.url)}</td>
+        <td>${(w.events || []).map(e => `<code class="small">${e}</code>`).join(', ')}</td>
+        <td>${w.enabled ? '<span class="badge bg-success">Aktif</span>' : '<span class="badge bg-secondary">Nonaktif</span>'}</td>
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-info me-1" onclick="testWebhook(${w.id})" title="Test">
+            <i class="bi bi-send"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteWebhook(${w.id})">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+async function saveWebhook() {
+  const url = document.getElementById('whUrl').value.trim();
+  const secret = document.getElementById('whSecret').value.trim();
+  const errEl = document.getElementById('whError');
+  errEl.classList.add('d-none');
+
+  if (!url) { errEl.textContent = 'URL wajib diisi.'; errEl.classList.remove('d-none'); return; }
+
+  const events = [];
+  if (document.getElementById('evtReportCreated').checked) events.push('report.created');
+  if (document.getElementById('evtBatchCompleted').checked) events.push('batch.completed');
+
+  const res = await fetch('/api/webhooks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, secret, events }),
+  });
+  const data = await res.json();
+  if (!res.ok) { errEl.textContent = data.error || 'Gagal menyimpan.'; errEl.classList.remove('d-none'); return; }
+
+  bootstrap.Modal.getInstance(document.getElementById('webhookModal')).hide();
+  document.getElementById('whUrl').value = '';
+  document.getElementById('whSecret').value = '';
+  loadWebhooks();
+}
+
+async function testWebhook(id) {
+  const res = await fetch(`/api/webhooks/${id}/test`, { method: 'POST' });
+  const data = await res.json();
+  alert(data.success ? '✓ Test berhasil dikirim!' : '✗ Test gagal. Cek URL webhook.');
+}
+
+async function deleteWebhook(id) {
+  if (!confirm('Hapus webhook ini?')) return;
+  await fetch(`/api/webhooks/${id}`, { method: 'DELETE' });
+  loadWebhooks();
+}
+
+// Load on page open
+loadDashboard();
+
+// Auto-load brand list when batch modal opens
+document.getElementById('batchModal').addEventListener('show.bs.modal', () => {
+  renderBatchBrandList();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}TikTok Affiliate Report{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --accent: #2d6a4f;
+      --accent-light: #40916c;
+      --accent-dark: #1b4332;
+    }
+    body { background: #f8f9fa; }
+    .navbar-brand { font-weight: 700; letter-spacing: .5px; }
+    .navbar { background: var(--accent) !important; }
+    .navbar-brand, .nav-link { color: #fff !important; }
+    .nav-link:hover { color: #d8f3dc !important; }
+    .nav-link.active { color: #d8f3dc !important; font-weight: 600; }
+    .btn-accent {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+    }
+    .btn-accent:hover { background: var(--accent-light); color: #fff; }
+    .card { border: none; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+    .badge-accent { background: var(--accent); }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand" href="/">
+        <i class="bi bi-graph-up-arrow me-2"></i>TikTok Affiliate Report
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link {% if request.path == '/dashboard' %}active{% endif %}" href="/dashboard">
+              <i class="bi bi-speedometer2 me-1"></i>Dashboard
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">
+              <i class="bi bi-upload me-1"></i>Upload & Konfigurasi
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.path == '/brands' %}active{% endif %}" href="/brands">
+              <i class="bi bi-building me-1"></i>Brands
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.path == '/history' %}active{% endif %}" href="/history">
+              <i class="bi bi-clock-history me-1"></i>History
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.path == '/settings' %}active{% endif %}" href="/settings">
+              <i class="bi bi-gear me-1"></i>Settings
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mt-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,93 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.hypothesis/
+.coverage
+htmlcov/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# Uploads & Reports
+uploads/*.xlsx
+uploads/*.csv
+uploads/*.xls
+uploads/*.ods
+uploads/images/*.png
+uploads/images/*.jpg
+uploads/images/*.jpeg
+reports/*.pdf
+reports/*.pptx
+reports/*.ppt
+
+# Keep .gitkeep files
+!uploads/.gitkeep
+!reports/.gitkeep
+
+# Cache files
+uploads/.brand_detection_cache.json
+uploads/.file_path_cache.json
+uploads/.mapping_cache.json
+uploads/.parse_cache.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Documentation (temporary)
+*_SUMMARY.md
+*_GUIDE.md
+*_FIX.md
+*_INSTRUCTIONS.md
+AUTO_PROCESS_GUIDE.md
+BRAND_*.md
+BUGFIX_*.md
+CACHE_*.md
+CARA_*.md
+CHANGES_*.md
+CLEANUP_*.md
+DEBUG_*.md
+FIXED_*.md
+FIX_*.md
+IMPLEMENTATION_*.md
+MULTI_*.md
+PARSING_*.md
+PERBAIKAN_*.md
+QUICK_*.md
+TABEL_*.md
+TEMPLATE_*.md
+TEST_*.md
+TROUBLESHOOTING_*.md
+UPLOAD_*.md

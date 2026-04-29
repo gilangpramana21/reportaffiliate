@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h4 class="fw-bold mb-4"><i class="bi bi-gear me-2 text-success"></i>Settings</h4>
+
+    <!-- TikTok Cookie Card -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-cookie me-1"></i>TikTok Cookie</span>
+        <span id="cookieStatus" class="badge bg-secondary">Memuat...</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Cookie TikTok digunakan untuk mengambil data views, likes, dan comments creator secara otomatis.
+          Cookie perlu diperbarui setiap ~30 hari.
+        </p>
+
+        <div class="alert alert-info small mb-3">
+          <strong>Cara mendapatkan cookie TikTok:</strong>
+          <ol class="mb-0 mt-1">
+            <li>Buka <a href="https://www.tiktok.com" target="_blank">tiktok.com</a> di Chrome dan login</li>
+            <li>Tekan <kbd>F12</kbd> → tab <strong>Application</strong> → <strong>Cookies</strong> → <code>https://www.tiktok.com</code></li>
+            <li>Install extension <a href="https://chrome.google.com/webstore/detail/editthiscookie" target="_blank">EditThisCookie</a> atau <strong>Cookie-Editor</strong></li>
+            <li>Klik export → copy semua cookie dalam format JSON atau string</li>
+            <li>Paste di field di bawah</li>
+          </ol>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Cookie String / JSON</label>
+          <textarea id="cookieInput" class="form-control font-monospace" rows="6"
+            placeholder='Paste cookie di sini. Format JSON array: [{"name":"sessionid","value":"xxx",...}] atau string: name=value; name2=value2'
+            style="font-size:0.8rem"></textarea>
+        </div>
+
+        <div id="cookieError" class="alert alert-danger d-none"></div>
+        <div id="cookieSuccess" class="alert alert-success d-none"></div>
+
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-accent" onclick="saveCookies()">
+            <i class="bi bi-save me-1"></i>Simpan Cookie
+          </button>
+          <button type="button" class="btn btn-outline-danger" onclick="deleteCookies()" id="deleteBtn" style="display:none">
+            <i class="bi bi-trash me-1"></i>Hapus Cookie
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrape Method Info -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-robot me-1"></i>Metode Scraping Aktif
+      </div>
+      <div class="card-body">
+        <div id="scrapeMethodInfo" class="text-muted">Memuat...</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadSettings() {
+  try {
+    const res = await fetch('/api/settings/tiktok-cookies');
+    const data = await res.json();
+    const badge = document.getElementById('cookieStatus');
+    if (data.has_cookies) {
+      badge.className = 'badge bg-success';
+      badge.textContent = '✓ Cookie aktif';
+      document.getElementById('deleteBtn').style.display = '';
+      document.getElementById('cookieInput').placeholder = `Cookie tersimpan: ${data.cookie_preview}`;
+    } else {
+      badge.className = 'badge bg-secondary';
+      badge.textContent = 'Belum ada cookie';
+    }
+  } catch (_) {}
+
+  try {
+    const res2 = await fetch('/api/settings/scrape-method');
+    const data2 = await res2.json();
+    const methodEl = document.getElementById('scrapeMethodInfo');
+    const methods = {
+      echotik: '<span class="badge bg-success me-2">EchoTik API</span> Menggunakan EchoTik API untuk views, likes, comments.',
+      cookie: '<span class="badge bg-primary me-2">Cookie TikTok</span> Menggunakan cookie TikTok untuk scraping views, likes, comments.',
+      playwright: '<span class="badge bg-warning text-dark me-2">Playwright</span> Scraping tanpa login — views tidak tersedia, hanya likes & comments.',
+    };
+    methodEl.innerHTML = methods[data2.method] || data2.method;
+  } catch (_) {}
+}
+
+async function saveCookies() {
+  const cookies = document.getElementById('cookieInput').value.trim();
+  const errEl = document.getElementById('cookieError');
+  const sucEl = document.getElementById('cookieSuccess');
+  errEl.classList.add('d-none');
+  sucEl.classList.add('d-none');
+
+  if (!cookies) {
+    errEl.textContent = 'Cookie tidak boleh kosong.';
+    errEl.classList.remove('d-none');
+    return;
+  }
+
+  const btn = document.querySelector('[onclick="saveCookies()"]');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...';
+
+  try {
+    const res = await fetch('/api/settings/tiktok-cookies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cookies })
+    });
+    
+    let data;
+    try {
+      data = await res.json();
+    } catch (_) {
+      data = { error: 'Response tidak valid dari server' };
+    }
+    
+    if (res.ok) {
+      sucEl.textContent = `✓ Cookie berhasil disimpan (${cookies.length} karakter). Scraping akan menggunakan cookie ini.`;
+      sucEl.classList.remove('d-none');
+      document.getElementById('cookieInput').value = '';
+      loadSettings();
+    } else {
+      errEl.textContent = data.error || `Gagal menyimpan (HTTP ${res.status}).`;
+      errEl.classList.remove('d-none');
+    }
+  } catch (err) {
+    errEl.textContent = 'Error koneksi: ' + err.message;
+    errEl.classList.remove('d-none');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-save me-1"></i>Simpan Cookie';
+  }
+}
+
+async function deleteCookies() {
+  if (!confirm('Hapus cookie TikTok? Scraping akan kembali ke mode tanpa login.')) return;
+  await fetch('/api/settings/tiktok-cookies', { method: 'DELETE' });
+  loadSettings();
+}
+
+loadSettings();
+</script>
+{% endblock %}

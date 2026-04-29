@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<title>Laporan Affiliate TikTok — {{ config.brand_name }} Batch {{ config.batch_number }}</title>
+<style>
+  /* ===== GLOBAL ===== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11pt;
+    color: #1a1a1a;
+    background: #fff;
+  }
+
+  /* ===== PAGE ===== */
+  @page {
+    size: A4;
+    margin: 20mm 18mm 20mm 18mm;
+  }
+
+  /* ===== SECTION BREAKS ===== */
+  .section {
+    page-break-before: always;
+  }
+
+  /* ===== COVER ===== */
+  .cover {
+    page-break-before: avoid;
+    background: #1a1a2e;
+    color: #ffffff;
+    width: 100%;
+    min-height: 250mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 40px;
+  }
+
+  .cover .label {
+    font-size: 12pt;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #a8d8a8;
+    margin-bottom: 16px;
+  }
+
+  .cover h1 {
+    font-size: 36pt;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+
+  .cover .batch {
+    font-size: 20pt;
+    color: #a8d8a8;
+    margin-bottom: 24px;
+  }
+
+  .cover .periode {
+    font-size: 13pt;
+    color: #cccccc;
+    margin-bottom: 40px;
+  }
+
+  .cover .divider {
+    width: 80px;
+    height: 4px;
+    background: #2d6a4f;
+    margin: 0 auto 40px;
+    border-radius: 2px;
+  }
+
+  .cover .meta {
+    font-size: 10pt;
+    color: #aaaaaa;
+  }
+
+  /* ===== SECTION HEADER ===== */
+  .section-title {
+    font-size: 16pt;
+    font-weight: 700;
+    color: #2d6a4f;
+    border-bottom: 3px solid #2d6a4f;
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+  }
+
+  /* ===== TABLES ===== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    font-size: 10pt;
+  }
+
+  thead th {
+    background-color: #2d6a4f;
+    color: #ffffff;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+  }
+
+  tbody tr:nth-child(even) {
+    background-color: #f0f7f4;
+  }
+
+  tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+  }
+
+  tbody td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e0e0e0;
+    vertical-align: top;
+  }
+
+  /* ===== METRIC CARDS ===== */
+  .metric-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .metric-card {
+    flex: 1 1 140px;
+    background: #f0f7f4;
+    border-left: 4px solid #2d6a4f;
+    border-radius: 4px;
+    padding: 14px 16px;
+  }
+
+  .metric-card .metric-label {
+    font-size: 9pt;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .metric-card .metric-value {
+    font-size: 18pt;
+    font-weight: 700;
+    color: #2d6a4f;
+  }
+
+  /* ===== GMV HIGHLIGHT ===== */
+  .gmv-highlight-box {
+    background: #2d6a4f;
+    color: #fff;
+    border-radius: 8px;
+    padding: 28px 32px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .gmv-highlight-box .gmv-label {
+    font-size: 11pt;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #a8d8a8;
+    margin-bottom: 8px;
+  }
+
+  .gmv-highlight-box .gmv-value {
+    font-size: 30pt;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 8px;
+  }
+
+  .gmv-change {
+    font-size: 12pt;
+    margin-top: 12px;
+  }
+
+  .gmv-change.positive { color: #a8d8a8; }
+  .gmv-change.negative { color: #ff8a80; }
+
+  .hero-sku-box {
+    background: #f0f7f4;
+    border: 1px solid #2d6a4f;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-top: 16px;
+  }
+
+  .hero-sku-box .hero-label {
+    font-size: 9pt;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .hero-sku-box .hero-value {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #2d6a4f;
+  }
+
+  /* ===== COLLAB METRICS ===== */
+  .collab-grid {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .collab-card {
+    flex: 1;
+    background: #f0f7f4;
+    border-radius: 6px;
+    padding: 20px;
+    text-align: center;
+    border-top: 4px solid #2d6a4f;
+  }
+
+  .collab-card .collab-num {
+    font-size: 28pt;
+    font-weight: 800;
+    color: #2d6a4f;
+  }
+
+  .collab-card .collab-label {
+    font-size: 10pt;
+    color: #555;
+    margin-top: 4px;
+  }
+
+  /* ===== TEXT SECTIONS ===== */
+  .text-content {
+    background: #f9f9f9;
+    border-left: 4px solid #2d6a4f;
+    border-radius: 0 4px 4px 0;
+    padding: 16px 20px;
+    font-size: 11pt;
+    line-height: 1.7;
+    color: #333;
+    white-space: pre-wrap;
+  }
+
+  .text-placeholder {
+    color: #999;
+    font-style: italic;
+  }
+
+  /* ===== LAMPIRAN ===== */
+  .lampiran-badge {
+    display: inline-block;
+    background: #2d6a4f;
+    color: #fff;
+    font-size: 9pt;
+    padding: 3px 10px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ===== FOOTER ===== */
+  @page {
+    @bottom-center {
+      content: "Laporan Affiliate TikTok — {{ config.brand_name }} | Halaman " counter(page) " dari " counter(pages);
+      font-size: 8pt;
+      color: #aaa;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- 1. COVER                                                      -->
+<!-- ============================================================ -->
+<div class="cover">
+  <div class="label">Laporan Affiliate TikTok</div>
+  <h1>{{ config.brand_name }}</h1>
+  <div class="batch">Batch {{ config.batch_number }}</div>
+  <div class="divider"></div>
+  <div class="periode">
+    Periode: {{ config.period_start.strftime('%d %B %Y') }} — {{ config.period_end.strftime('%d %B %Y') }}
+  </div>
+  <div class="meta">Dokumen ini bersifat rahasia dan hanya untuk keperluan internal.</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 2. PERFORMANCE SUMMARY                                        -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">Performance Summary</div>
+
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-label">Total Deal</div>
+      <div class="metric-value">{{ metrics.total_deal }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total Posting</div>
+      <div class="metric-value">{{ metrics.total_posting }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Belum Posting</div>
+      <div class="metric-value">{{ metrics.total_belum_posting }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total Video</div>
+      <div class="metric-value">{{ metrics.total_video }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total GMV</div>
+      <div class="metric-value" style="font-size:13pt;">{{ format_rupiah(metrics.total_gmv) }}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Metrik</th>
+        <th>Batch Ini</th>
+        {% if metrics.gmv_change is not none %}
+        <th>Perubahan vs Batch Sebelumnya</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Total Deal</td>
+        <td>{{ metrics.total_deal }}</td>
+        {% if metrics.gmv_change is not none %}<td>—</td>{% endif %}
+      </tr>
+      <tr>
+        <td>Total Posting</td>
+        <td>{{ metrics.total_posting }}</td>
+        {% if metrics.gmv_change is not none %}<td>—</td>{% endif %}
+      </tr>
+      <tr>
+        <td>Belum Posting</td>
+        <td>{{ metrics.total_belum_posting }}</td>
+        {% if metrics.gmv_change is not none %}<td>—</td>{% endif %}
+      </tr>
+      <tr>
+        <td>Total Video</td>
+        <td>{{ metrics.total_video }}</td>
+        {% if metrics.gmv_change is not none %}<td>—</td>{% endif %}
+      </tr>
+      <tr>
+        <td>Total GMV</td>
+        <td>{{ format_rupiah(metrics.total_gmv) }}</td>
+        {% if metrics.gmv_change is not none %}
+        <td>
+          {{ format_rupiah(metrics.gmv_change) }}
+          ({{ "%.1f"|format(metrics.gmv_change_pct) }}%)
+        </td>
+        {% endif %}
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- 3. GMV HIGHLIGHT                                              -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">GMV Highlight</div>
+
+  <div class="gmv-highlight-box">
+    <div class="gmv-label">Total GMV Batch {{ config.batch_number }}</div>
+    <div class="gmv-value">{{ format_rupiah(metrics.total_gmv) }}</div>
+
+    {% if metrics.gmv_change is not none %}
+    <div class="gmv-change {% if metrics.gmv_change >= 0 %}positive{% else %}negative{% endif %}">
+      {% if metrics.gmv_change >= 0 %}▲{% else %}▼{% endif %}
+      {{ format_rupiah(metrics.gmv_change | abs) }}
+      ({{ "%.1f"|format(metrics.gmv_change_pct | abs) }}%
+      {% if metrics.gmv_change >= 0 %}naik{% else %}turun{% endif %}
+      vs batch sebelumnya)
+    </div>
+    {% endif %}
+  </div>
+
+  {% if metrics.hero_sku %}
+  <div class="hero-sku-box">
+    <div class="hero-label">Hero SKU</div>
+    <div class="hero-value">{{ metrics.hero_sku }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ============================================================ -->
+<!-- 4. TOP PERFORMER                                              -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">Top Performer</div>
+
+  {% if top_performers %}
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Username</th>
+        <th>GMV</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for creator in top_performers %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ creator.username or '—' }}</td>
+        <td>{{ format_rupiah(creator.avg_gmv_month or 0) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-placeholder">Tidak ada data top performer.</p>
+  {% endif %}
+</div>
+
+<!-- ============================================================ -->
+<!-- 5. COLLABORATION METRICS                                      -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">Collaboration Metrics</div>
+
+  <div class="collab-grid">
+    <div class="collab-card">
+      <div class="collab-num">{{ metrics.total_approached }}</div>
+      <div class="collab-label">Total Approached</div>
+    </div>
+    <div class="collab-card">
+      <div class="collab-num">{{ metrics.total_deal }}</div>
+      <div class="collab-label">Total Deal</div>
+    </div>
+    <div class="collab-card">
+      {% if metrics.total_approached > 0 %}
+      <div class="collab-num">{{ "%.1f"|format(metrics.total_deal / metrics.total_approached * 100) }}%</div>
+      {% else %}
+      <div class="collab-num">0%</div>
+      {% endif %}
+      <div class="collab-label">Rasio Konversi</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 6. DETAILED GMV DATA (hanya jika <= 50 baris)                -->
+<!-- ============================================================ -->
+{% if not large_table %}
+<div class="section">
+  <div class="section-title">Detailed GMV Data</div>
+
+  {% if deal_rows %}
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Username</th>
+        <th>GMV</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in deal_rows %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ row.username or '—' }}</td>
+        <td>{{ format_rupiah(row.avg_gmv_month or 0) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-placeholder">Tidak ada data creator.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- ============================================================ -->
+<!-- 7. ENGAGEMENT                                                 -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">Engagement</div>
+
+  {% if config.engagement %}
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-label">Total Views</div>
+      <div class="metric-value">{{ "{:,}".format(config.engagement.total_views).replace(",", ".") }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total Likes</div>
+      <div class="metric-value">{{ "{:,}".format(config.engagement.total_likes).replace(",", ".") }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total Comments</div>
+      <div class="metric-value">{{ "{:,}".format(config.engagement.total_comments).replace(",", ".") }}</div>
+    </div>
+  </div>
+  {% else %}
+  <p class="text-placeholder">Data tidak tersedia.</p>
+  {% endif %}
+</div>
+
+<!-- ============================================================ -->
+<!-- 8. INSIGHT                                                    -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">Insight</div>
+
+  {% if config.insight %}
+  <div class="text-content">{{ config.insight }}</div>
+  {% else %}
+  <div class="text-content text-placeholder">Belum diisi.</div>
+  {% endif %}
+</div>
+
+<!-- ============================================================ -->
+<!-- 9. NEXT PLAN                                                  -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">Next Plan</div>
+
+  {% if config.next_plan %}
+  <div class="text-content">{{ config.next_plan }}</div>
+  {% else %}
+  <div class="text-content text-placeholder">Belum diisi.</div>
+  {% endif %}
+</div>
+
+<!-- ============================================================ -->
+<!-- LAMPIRAN: DETAILED GMV DATA (hanya jika > 50 baris)          -->
+<!-- ============================================================ -->
+{% if large_table %}
+<div class="section">
+  <div class="lampiran-badge">Lampiran</div>
+  <div class="section-title">Detailed GMV Data</div>
+
+  {% if deal_rows %}
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Username</th>
+        <th>GMV</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in deal_rows %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ row.username or '—' }}</td>
+        <td>{{ format_rupiah(row.avg_gmv_month or 0) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-placeholder">Tidak ada data creator.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+</body>
+</html>

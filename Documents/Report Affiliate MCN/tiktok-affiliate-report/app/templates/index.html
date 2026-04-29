@@ -1,0 +1,875 @@
+{% extends "base.html" %}
+{% block title %}Upload Data Affiliate{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h4 class="mb-4 fw-bold">
+      <i class="bi bi-upload me-2 text-success"></i>Upload Data Affiliate
+      <button type="button" class="btn btn-sm btn-outline-danger float-end" onclick="clearAllCache()" title="Clear semua cache untuk re-parse file dengan code terbaru">
+        <i class="bi bi-trash me-1"></i>Clear Cache
+      </button>
+    </h4>
+
+    <!-- Upload Card -->
+    <div class="card mb-4" id="uploadCard">
+      <div class="card-body p-4">
+        <!-- Tab: Upload Baru vs File Tersimpan -->
+        <ul class="nav nav-tabs mb-3" id="uploadTabs">
+          <li class="nav-item">
+            <button class="nav-link active" onclick="switchTab('new')">
+              <i class="bi bi-upload me-1"></i>Upload Baru
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" onclick="switchTab('existing')">
+              <i class="bi bi-folder2 me-1"></i>File Tersimpan
+            </button>
+          </li>
+        </ul>
+
+        <!-- Tab: Upload Baru -->
+        <div id="tabNew">
+        <div id="dropZone"
+             class="border border-2 border-dashed rounded-3 p-5 text-center"
+             style="border-color: var(--accent) !important; cursor: pointer; transition: background .2s;">
+          <i class="bi bi-file-earmark-spreadsheet fs-1 text-success mb-3 d-block"></i>
+          <p class="mb-1 fw-semibold">Drag &amp; drop file di sini</p>
+          <p class="text-muted small mb-3">atau klik untuk memilih file — bisa drag dari Chrome download bar</p>
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.ods" class="d-none" />
+          <button type="button" class="btn btn-accent px-4" id="pickFileBtn">
+            <i class="bi bi-folder2-open me-1"></i>Pilih File
+          </button>
+          <p class="text-muted small mt-3 mb-0">Format: .xlsx, .xls, .csv, .ods</p>
+        </div>
+
+        <div id="fileInfo" class="mt-3 d-none">
+          <div class="d-flex align-items-center gap-2 p-3 bg-light rounded">
+            <i class="bi bi-file-earmark-check text-success fs-5"></i>
+            <span id="fileName" class="fw-semibold"></span>
+            <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" onclick="resetUpload()">
+              <i class="bi bi-x"></i> Ganti
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <button type="button" class="btn btn-accent w-100 py-2" id="uploadBtn" disabled onclick="doUpload()">
+            <i class="bi bi-cloud-upload me-1"></i>Upload &amp; Parse
+          </button>
+        </div>
+
+        <div id="uploadProgress" class="mt-3 d-none">
+          <div class="progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width:100%"></div>
+          </div>
+          <p class="text-muted small text-center mt-1">Memproses file...</p>
+        </div>
+
+        <div id="uploadError" class="alert alert-danger mt-3 d-none"></div>
+      </div><!-- end tabNew -->
+
+      <!-- Tab: File Tersimpan -->
+      <div id="tabExisting" class="d-none">
+        <p class="text-muted small mb-3">Pilih file Excel yang sudah pernah diupload dan pilih sheet yang ingin diparse.</p>
+        <div id="existingFilesLoading" class="text-center py-3">
+          <div class="spinner-border spinner-border-sm text-success"></div>
+          <span class="ms-2 text-muted small">Memuat daftar file...</span>
+        </div>
+        <div id="existingFilesWrapper" class="d-none">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Pilih File</label>
+            <select id="existingFileSelect" class="form-select" onchange="onExistingFileChange()">
+              <option value="">— Pilih file —</option>
+            </select>
+          </div>
+          <div class="row g-2 mb-3" id="existingSheetWrapper" style="display:none!important">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Sheet Deal</label>
+              <select id="existingDealSheet" class="form-select">
+                <option value="">— Pilih sheet —</option>
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Sheet Belum Deal <span class="text-muted small">(opsional)</span></label>
+              <select id="existingNonDealSheet" class="form-select">
+                <option value="">— Tidak ada —</option>
+              </select>
+            </div>
+          </div>
+          <button type="button" class="btn btn-accent" id="reparseBtn" onclick="doReparse()" disabled>
+            <i class="bi bi-arrow-repeat me-1"></i>Parse File Ini
+          </button>
+          <div id="reparseError" class="alert alert-danger mt-3 d-none"></div>
+        </div>
+      </div>
+
+      </div><!-- end card-body -->
+    </div>
+
+    <!-- Parse Result -->
+    <div id="parseResult" class="d-none">
+      <div class="card mb-4">
+        <div class="card-header bg-success text-white fw-semibold">
+          <i class="bi bi-check-circle me-1"></i>Hasil Parsing
+        </div>
+        <div class="card-body">
+          <div class="row g-3 mb-3">
+            <div class="col-sm-4">
+              <div class="p-3 bg-light rounded text-center">
+                <div class="fs-4 fw-bold text-success" id="dealCount">0</div>
+                <div class="small text-muted">Baris Deal</div>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="p-3 bg-light rounded text-center">
+                <div class="fs-4 fw-bold text-warning" id="nonDealCount">0</div>
+                <div class="small text-muted">Baris Belum Deal</div>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="p-3 bg-light rounded text-center">
+                <div class="fs-4 fw-bold text-primary" id="colCount">0</div>
+                <div class="small text-muted">Kolom Terdeteksi</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="missingColsAlert" class="alert alert-warning d-none">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            <strong>Kolom standar tidak ditemukan:</strong>
+            <span id="missingColsList"></span>
+          </div>
+
+          <div id="parseWarningsAlert" class="alert alert-warning d-none">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            <div id="parseWarningsList"></div>
+          </div>
+
+          <!-- Sheet selector (untuk file Excel multi-sheet) -->
+          <div id="sheetSelectorWrapper" class="d-none mb-3">
+            <div class="alert alert-info">
+              <i class="bi bi-layers me-1"></i>
+              <strong>File ini punya beberapa sheet.</strong> Pilih sheet yang berisi data creator:
+            </div>
+            <div class="row g-2">
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Sheet Deal (data creator yang sudah deal)</label>
+                <select id="dealSheetSelect" class="form-select">
+                  <option value="">— Pilih sheet —</option>
+                </select>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Sheet Belum Deal <span class="text-muted small">(opsional)</span></label>
+                <select id="nonDealSheetSelect" class="form-select">
+                  <option value="">— Tidak ada —</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline-success btn-sm mt-2" onclick="applySheetSelection()">
+              <i class="bi bi-check2 me-1"></i>Terapkan Pilihan Sheet
+            </button>
+          </div>
+
+          <div>
+            <small class="text-muted">Kolom terdeteksi:</small>
+            <div id="detectedCols" class="mt-1"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column Mapping Form -->
+      <div class="card mb-4">
+        <div class="card-header fw-semibold">
+          <i class="bi bi-arrow-left-right me-1"></i>Mapping Kolom
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">Petakan kolom dari file Anda ke field standar sistem.</p>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Kolom di File</th>
+                  <th>Field Standar</th>
+                </tr>
+              </thead>
+              <tbody id="mappingTableBody"></tbody>
+            </table>
+          </div>
+
+          <hr />
+          <div class="row g-3 align-items-end">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Nama Brand</label>
+              <input type="text" id="brandNameInput" class="form-control" placeholder="Contoh: BrandXYZ" />
+            </div>
+            <div class="col-sm-6">
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" id="saveConfigCheck" />
+                <label class="form-check-label" for="saveConfigCheck">
+                  Simpan konfigurasi untuk brand ini
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div id="mappingError" class="alert alert-danger mt-3 d-none"></div>
+
+          <button type="button" class="btn btn-accent mt-3 px-4" onclick="doMapping()">
+            <i class="bi bi-arrow-right-circle me-1"></i>Lanjut ke Konfigurasi Laporan
+          </button>
+          <div id="mappingProgress" class="mt-2 d-none">
+            <div class="progress">
+              <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width:100%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const STANDARD_FIELDS = [
+  "", "TANGGAL", "USERNAME", "LINK ACC", "FOLLS", "CONTACT",
+  "BRAND", "PIC", "AVG GMV/MONTH", "GMV PER PEMBELI",
+  "UPDATE", "RESPON SPEED", "RESULT", "SAMPEL GRATIS", "NOTE",
+  "LINK VIDEO", "TOTAL VT", "NOTE DEAL", "NOTE DARI RARA",
+  "TGL C.O", "ID PESANAN", "NO VA C.O SAMPEL", "STATUS PAYMENT SAMPEL",
+  "GMV PER WEEK 1 AFER JOIN", "GMV PER WEEK 2 AFER JOIN",
+  "GMV PER WEEK 3 AFER JOIN", "GMV PER WEEK 4 AFER JOIN",
+  "GMV PERBULAN AFTER JOIN",
+];
+
+// Alias: nama kolom di file → nilai STANDARD_FIELDS yang sesuai
+const COLUMN_ALIASES = {
+  'TGL DEAL': 'TANGGAL',
+  'TGL': 'TANGGAL',
+  'TANGGAL DEAL': 'TANGGAL',
+  'AVG GMV/ MONTH': 'AVG GMV/MONTH',
+  'AVG GMV/\nMONTH': 'AVG GMV/MONTH',
+  'AVG GMV MONTH': 'AVG GMV/MONTH',
+  'AVG GMV': 'AVG GMV/MONTH',
+  'RESPON': 'RESPON SPEED',
+  'SPEED': 'RESPON SPEED',
+  'STATUS SEMPEL': 'SAMPEL GRATIS',
+  'STATUS SAMPEL': 'SAMPEL GRATIS',
+  'SAMPEL': 'SAMPEL GRATIS',
+  'SAMPEL APA': 'SAMPEL GRATIS',
+  'NOTE DEAL': 'NOTE DEAL',
+  'NOTE DEAL VT': 'NOTE DEAL',
+  'NOTE RARA': 'NOTE DARI RARA',
+  'CATATAN': 'NOTE',
+  'FOLLOWERS': 'FOLLS',
+  'FOLLOWER': 'FOLLS',
+  'LINK AKUN': 'LINK ACC',
+  'LINK ACCOUNT': 'LINK ACC',
+  'APPROVED BY RARA': 'PIC',
+  'APPROVED': 'PIC',
+  'UPDATE VT': 'UPDATE',
+  'TOTAL\nVT': 'TOTAL VT',
+  'NOTE\nDEAL': 'NOTE DEAL',
+  'JUMLAH VT': 'TOTAL VT',
+  'GMV PER WEEK 1 AFER JOIN': 'GMV PER WEEK 1 AFER JOIN',
+  'GMV PER WEEK 2 AFER JOIN': 'GMV PER WEEK 2 AFER JOIN',
+  'GMV PER WEEK 3 AFER JOIN': 'GMV PER WEEK 3 AFER JOIN',
+  'GMV PER WEEK 4 AFER JOIN': 'GMV PER WEEK 4 AFER JOIN',
+  'GMV PERBULAN AFTER JOIN': 'GMV PERBULAN AFTER JOIN',
+};
+
+let currentParseId = null;
+let detectedColumns = [];
+
+// Check if we're returning from brand selection with a parse_id
+document.addEventListener('DOMContentLoaded', function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const parseId = urlParams.get('parse_id');
+  
+  if (parseId) {
+    // Try to restore the parse result from cache
+    restoreParseResult(parseId);
+  }
+});
+
+async function restoreParseResult(parseId) {
+  try {
+    // Try to get the preview data to check if parse result still exists
+    const res = await fetch(`/api/parse/${parseId}/preview`);
+    if (res.ok) {
+      const data = await res.json();
+      
+      // Restore the parse state
+      currentParseId = parseId;
+      detectedColumns = data.columns || [];
+      
+      // Show parse result section
+      document.getElementById('parseResult').classList.remove('d-none');
+      
+      // Update the display (we don't have exact counts, so show placeholder)
+      document.getElementById('dealCount').textContent = '✓';
+      document.getElementById('nonDealCount').textContent = '✓';
+      document.getElementById('colCount').textContent = detectedColumns.length;
+      
+      // Show detected columns
+      const colsEl = document.getElementById('detectedCols');
+      colsEl.innerHTML = detectedColumns.map(c =>
+        `<span class="badge bg-secondary me-1 mb-1">${c}</span>`
+      ).join('');
+      
+      // Build mapping table
+      buildMappingTable(detectedColumns);
+      
+      // Show a message that they returned from brand selection
+      showToast('Returned from brand selection. You can modify the mapping and try again.', 'info');
+      
+      // Clear the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  } catch (error) {
+    console.warn('Could not restore parse result:', error);
+    showToast('Could not restore previous data. Please upload the file again.', 'warning');
+  }
+}
+
+// Tab switching
+function switchTab(tab) {
+  document.querySelectorAll('#uploadTabs .nav-link').forEach(el => el.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tabNew').classList.toggle('d-none', tab !== 'new');
+  document.getElementById('tabExisting').classList.toggle('d-none', tab !== 'existing');
+  if (tab === 'existing') loadExistingFiles();
+}
+
+let _existingFiles = [];
+async function loadExistingFiles() {
+  try {
+    const res = await fetch('/api/list-uploads');
+    const data = await res.json();
+    _existingFiles = data.files || [];
+    const sel = document.getElementById('existingFileSelect');
+    sel.innerHTML = '<option value="">— Pilih file —</option>';
+    _existingFiles.forEach(f => {
+      const sizeKB = Math.round(f.size / 1024);
+      sel.innerHTML += `<option value="${f.name}">${f.name} (${sizeKB}KB, ${f.sheets.length} sheets)</option>`;
+    });
+    document.getElementById('existingFilesLoading').classList.add('d-none');
+    document.getElementById('existingFilesWrapper').classList.remove('d-none');
+  } catch (err) {
+    document.getElementById('existingFilesLoading').innerHTML = '<span class="text-danger">Gagal memuat file.</span>';
+  }
+}
+
+function onExistingFileChange() {
+  const fileName = document.getElementById('existingFileSelect').value;
+  const file = _existingFiles.find(f => f.name === fileName);
+  if (!file) {
+    document.getElementById('existingSheetWrapper').style.display = 'none';
+    document.getElementById('reparseBtn').disabled = true;
+    return;
+  }
+  const dealSel = document.getElementById('existingDealSheet');
+  const nonDealSel = document.getElementById('existingNonDealSheet');
+  dealSel.innerHTML = '<option value="">— Pilih sheet —</option>';
+  nonDealSel.innerHTML = '<option value="">— Tidak ada —</option>';
+  file.sheets.forEach(s => {
+    dealSel.innerHTML += `<option value="${s}">${s}</option>`;
+    nonDealSel.innerHTML += `<option value="${s}">${s}</option>`;
+  });
+  // Auto-select sheet yang namanya mengandung DEAL
+  const dealSheet = file.sheets.find(s => s.toUpperCase().includes('DEAL') && !s.toUpperCase().includes('BELUM') && !s.toUpperCase().includes('DATABASE'));
+  if (dealSheet) dealSel.value = dealSheet;
+  document.getElementById('existingSheetWrapper').style.removeProperty('display');
+  document.getElementById('reparseBtn').disabled = false;
+}
+
+async function doReparse() {
+  const fileName = document.getElementById('existingFileSelect').value;
+  const dealSheet = document.getElementById('existingDealSheet').value;
+  const nonDealSheet = document.getElementById('existingNonDealSheet').value;
+  const errEl = document.getElementById('reparseError');
+  errEl.classList.add('d-none');
+
+  if (!fileName || !dealSheet) {
+    errEl.textContent = 'Pilih file dan sheet Deal terlebih dahulu.';
+    errEl.classList.remove('d-none');
+    return;
+  }
+
+  document.getElementById('reparseBtn').disabled = true;
+  document.getElementById('reparseBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Memproses...';
+
+  try {
+    const res = await fetch('/api/reparse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file_name: fileName, deal_sheet: dealSheet, non_deal_sheet: nonDealSheet })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Gagal parse.'; errEl.classList.remove('d-none'); return; }
+
+    currentParseId = data.parse_id;
+    detectedColumns = data.detected_columns || [];
+
+    document.getElementById('dealCount').textContent = data.deal_row_count;
+    document.getElementById('nonDealCount').textContent = data.non_deal_row_count;
+    document.getElementById('colCount').textContent = detectedColumns.length;
+
+    const colsEl = document.getElementById('detectedCols');
+    colsEl.innerHTML = detectedColumns.map(c => `<span class="badge bg-secondary me-1 mb-1">${c}</span>`).join('');
+
+    buildMappingTable(detectedColumns);
+    document.getElementById('parseResult').classList.remove('d-none');
+    document.getElementById('sheetSelectorWrapper').classList.add('d-none');
+
+    showToast(`Sheet "${dealSheet}" berhasil diparse: ${data.deal_row_count} baris.`, 'success');
+  } catch (err) {
+    errEl.textContent = 'Error: ' + err.message;
+    errEl.classList.remove('d-none');
+  } finally {
+    document.getElementById('reparseBtn').disabled = false;
+    document.getElementById('reparseBtn').innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Parse File Ini';
+  }
+}
+
+// Drag & drop
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+// Handle drag over the entire page (bukan hanya dropZone)
+document.addEventListener('dragover', e => {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+});
+
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  // Hanya proses jika bukan di dalam input/textarea
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const file = _getFileFromDrop(e);
+  if (file) {
+    // Switch ke tab Upload Baru jika belum aktif
+    const tabNew = document.getElementById('tabNew');
+    if (tabNew.classList.contains('d-none')) {
+      document.querySelectorAll('#uploadTabs .nav-link').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('#uploadTabs .nav-link')[0].classList.add('active');
+      tabNew.classList.remove('d-none');
+      document.getElementById('tabExisting').classList.add('d-none');
+    }
+    setFile(file);
+  }
+});
+
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  dropZone.style.background = '#d8f3dc';
+  dropZone.style.borderColor = 'var(--accent)';
+});
+dropZone.addEventListener('dragleave', e => {
+  // Hanya reset jika benar-benar keluar dari dropZone
+  if (!dropZone.contains(e.relatedTarget)) {
+    dropZone.style.background = '';
+  }
+});
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.style.background = '';
+  const file = _getFileFromDrop(e);
+  if (file) setFile(file);
+});
+
+function _getFileFromDrop(e) {
+  // Method 1: dataTransfer.files (standard)
+  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    const file = e.dataTransfer.files[0];
+    if (_isValidFileType(file)) return file;
+    // Jika ekstensi tidak dikenali, coba tetap proses (mungkin MIME type benar)
+    if (file.type && (
+      file.type.includes('spreadsheet') ||
+      file.type.includes('excel') ||
+      file.type.includes('csv') ||
+      file.type.includes('openxmlformats')
+    )) return file;
+    // Return anyway dan biarkan server yang validasi
+    if (file.name) return file;
+  }
+  // Method 2: dataTransfer.items (untuk Chrome drag dari download bar)
+  if (e.dataTransfer.items) {
+    for (const item of e.dataTransfer.items) {
+      if (item.kind === 'file') {
+        const file = item.getAsFile();
+        if (file) return file;
+      }
+    }
+  }
+  return null;
+}
+
+function _isValidFileType(file) {
+  const name = (file.name || '').toLowerCase();
+  return name.endsWith('.xlsx') || name.endsWith('.xls') ||
+         name.endsWith('.csv') || name.endsWith('.ods');
+}
+
+// Klik dropZone buka file dialog, tapi jangan trigger jika klik dari tombol/input di dalamnya
+dropZone.addEventListener('click', e => {
+  if (e.target === dropZone || e.target.tagName === 'P' || e.target.tagName === 'I') {
+    fileInput.click();
+  }
+});
+document.getElementById('pickFileBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  fileInput.click();
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) setFile(fileInput.files[0]);
+});
+
+function setFile(file) {
+  // Validasi tipe file
+  const validExts = ['.xlsx', '.xls', '.csv', '.ods'];
+  const name = file.name || '';
+  const hasValidExt = validExts.some(ext => name.toLowerCase().endsWith(ext));
+  const hasValidMime = file.type && (
+    file.type.includes('spreadsheet') || file.type.includes('excel') ||
+    file.type.includes('csv') || file.type.includes('openxmlformats') ||
+    file.type.includes('opendocument')
+  );
+
+  if (!hasValidExt && !hasValidMime && name) {
+    const errEl = document.getElementById('uploadError');
+    errEl.textContent = `Format file "${name}" tidak didukung. Gunakan .xlsx, .xls, .csv, atau .ods`;
+    errEl.classList.remove('d-none');
+    return;
+  }
+
+  document.getElementById('fileName').textContent = name || 'File tidak dikenal';
+  document.getElementById('fileInfo').classList.remove('d-none');
+  document.getElementById('uploadBtn').disabled = false;
+  document.getElementById('uploadError').classList.add('d-none');
+
+  // Simpan file ke fileInput agar bisa diakses saat upload
+  // Buat DataTransfer untuk assign ke input
+  try {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+  } catch (_) {
+    // Fallback: simpan di variable global
+    window._pendingFile = file;
+  }
+}
+
+function resetUpload() {
+  fileInput.value = '';
+  window._pendingFile = null;
+  document.getElementById('fileInfo').classList.add('d-none');
+  document.getElementById('uploadBtn').disabled = true;
+  document.getElementById('parseResult').classList.add('d-none');
+  currentParseId = null;
+}
+
+async function doUpload() {
+  const file = fileInput.files[0] || window._pendingFile;
+  if (!file) return;
+
+  const errEl = document.getElementById('uploadError');
+  errEl.classList.add('d-none');
+  document.getElementById('uploadProgress').classList.remove('d-none');
+  document.getElementById('uploadBtn').disabled = true;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Upload gagal';
+      errEl.classList.remove('d-none');
+      return;
+    }
+
+    currentParseId = data.parse_id;
+    detectedColumns = data.detected_columns || [];
+
+    document.getElementById('dealCount').textContent = data.deal_row_count;
+    document.getElementById('nonDealCount').textContent = data.non_deal_row_count;
+    document.getElementById('colCount').textContent = detectedColumns.length;
+
+    // Detected columns badges
+    const colsEl = document.getElementById('detectedCols');
+    colsEl.innerHTML = detectedColumns.map(c =>
+      `<span class="badge bg-secondary me-1 mb-1">${c}</span>`
+    ).join('');
+
+    // Fetch preview for missing columns
+    const prevRes = await fetch(`/api/parse/${currentParseId}/preview`);
+    const prevData = await prevRes.json();
+    const missing = prevData.missing_standard_columns || [];
+    if (missing.length > 0) {
+      document.getElementById('missingColsList').textContent = ' ' + missing.join(', ');
+      document.getElementById('missingColsAlert').classList.remove('d-none');
+    } else {
+      document.getElementById('missingColsAlert').classList.add('d-none');
+    }
+
+    // Display warnings if any
+    const warnings = data.warnings || [];
+    if (warnings.length > 0) {
+      const warningsListEl = document.getElementById('parseWarningsList');
+      warningsListEl.innerHTML = warnings.map(w => `<div>• ${w}</div>`).join('');
+      document.getElementById('parseWarningsAlert').classList.remove('d-none');
+    } else {
+      document.getElementById('parseWarningsAlert').classList.add('d-none');
+    }
+
+    buildMappingTable(detectedColumns);
+    document.getElementById('parseResult').classList.remove('d-none');
+
+    // Tampilkan sheet selector jika ada multiple sheets
+    const availableSheets = data.available_sheets || [];
+    if (availableSheets.length > 1) {
+      const dealSel = document.getElementById('dealSheetSelect');
+      const nonDealSel = document.getElementById('nonDealSheetSelect');
+      dealSel.innerHTML = '<option value="">— Pilih sheet —</option>';
+      nonDealSel.innerHTML = '<option value="">— Tidak ada —</option>';
+      availableSheets.forEach(s => {
+        dealSel.innerHTML += `<option value="${s}">${s}</option>`;
+        nonDealSel.innerHTML += `<option value="${s}">${s}</option>`;
+      });
+      // Auto-select sheet yang namanya mengandung "DEAL" atau "Deal"
+      const dealSheet = availableSheets.find(s => s.toUpperCase().includes('DEAL') && !s.toUpperCase().includes('BELUM'));
+      const nonDealSheet = availableSheets.find(s => s.toUpperCase().includes('BELUM'));
+      if (dealSheet) dealSel.value = dealSheet;
+      if (nonDealSheet) nonDealSel.value = nonDealSheet;
+      document.getElementById('sheetSelectorWrapper').classList.remove('d-none');
+    }
+
+    // Auto-check brand column config if brand name filled
+    document.getElementById('brandNameInput').addEventListener('blur', checkBrandConfig);
+
+  } catch (err) {
+    errEl.textContent = 'Terjadi kesalahan: ' + err.message;
+    errEl.classList.remove('d-none');
+  } finally {
+    document.getElementById('uploadProgress').classList.add('d-none');
+    document.getElementById('uploadBtn').disabled = false;
+  }
+}
+
+async function applySheetSelection() {
+  const dealSheet = document.getElementById('dealSheetSelect').value;
+  if (!dealSheet) { alert('Pilih sheet Deal terlebih dahulu.'); return; }
+  const nonDealSheet = document.getElementById('nonDealSheetSelect').value;
+
+  try {
+    const res = await fetch(`/api/parse/${currentParseId}/select-sheet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deal_sheet: dealSheet, non_deal_sheet: nonDealSheet })
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || 'Gagal memilih sheet.'); return; }
+
+    document.getElementById('dealCount').textContent = data.deal_row_count;
+    document.getElementById('nonDealCount').textContent = data.non_deal_row_count;
+    showToast(`Sheet "${dealSheet}" dipilih: ${data.deal_row_count} baris deal.`, 'success');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+// Kolom yang selalu diabaikan (tidak relevan untuk laporan)
+const ALWAYS_IGNORE = ['OKTOBER', 'SAMPEL PRODUCT'];
+
+function buildMappingTable(columns) {
+  const tbody = document.getElementById('mappingTableBody');
+  tbody.innerHTML = '';
+  columns.forEach(col => {
+    const colUpper = col.toUpperCase().replace(/\s+/g, ' ').trim();
+    const colNorm = col.replace(/\n/g, ' ').toUpperCase().trim();
+
+    // Kolom yang selalu diabaikan
+    if (ALWAYS_IGNORE.some(ig => colNorm.includes(ig))) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="badge bg-light text-muted border">${col}</span></td>
+        <td><select class="form-select form-select-sm" data-col="${col}">
+          ${STANDARD_FIELDS.map(f => `<option value="${f}" ${f === '' ? 'selected' : ''}>${f || '— Abaikan —'}</option>`).join('')}
+          <option value="__custom__">Kolom Brand Khusus</option>
+        </select></td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+
+    // Cari match: exact → alias → partial
+    let autoMatch = STANDARD_FIELDS.find(f => f && f.toUpperCase() === colUpper) || '';
+    if (!autoMatch) autoMatch = COLUMN_ALIASES[colNorm] || '';
+    if (!autoMatch) autoMatch = COLUMN_ALIASES[col.toUpperCase()] || '';
+    if (!autoMatch) autoMatch = COLUMN_ALIASES[colUpper] || '';
+    // Partial match sebagai fallback
+    if (!autoMatch) {
+      autoMatch = STANDARD_FIELDS.find(f => f && (
+        colUpper.includes(f.toUpperCase()) || f.toUpperCase().includes(colUpper)
+      )) || '';
+    }
+
+    const isMatched = !!autoMatch;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="badge ${isMatched ? 'bg-success' : 'bg-secondary'}">${col}</span></td>
+      <td>
+        <select class="form-select form-select-sm" data-col="${col}">
+          ${STANDARD_FIELDS.map(f =>
+            `<option value="${f}" ${f === autoMatch ? 'selected' : ''}>${f || '— Abaikan —'}</option>`
+          ).join('')}
+          <option value="__custom__">Kolom Brand Khusus</option>
+        </select>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function checkBrandConfig() {
+  const brand = document.getElementById('brandNameInput').value.trim();
+  if (!brand) return;
+  try {
+    const res = await fetch(`/api/brands/${encodeURIComponent(brand)}/column-config`);
+    if (res.ok) {
+      const data = await res.json();
+      const cfg = data.column_config;
+      if (cfg && cfg.mappings) {
+        // Apply saved mappings
+        document.querySelectorAll('#mappingTableBody select').forEach(sel => {
+          const col = sel.dataset.col;
+          if (cfg.mappings[col]) sel.value = cfg.mappings[col];
+        });
+        showToast('Konfigurasi kolom tersimpan ditemukan dan diterapkan otomatis.', 'success');
+      }
+    }
+  } catch (_) {}
+}
+
+async function doMapping() {
+  const brand = document.getElementById('brandNameInput').value.trim();
+  const errEl = document.getElementById('mappingError');
+  errEl.classList.add('d-none');
+
+  if (!brand) {
+    errEl.textContent = 'Nama brand wajib diisi.';
+    errEl.classList.remove('d-none');
+    return;
+  }
+  if (!currentParseId) {
+    errEl.textContent = 'Upload file terlebih dahulu.';
+    errEl.classList.remove('d-none');
+    return;
+  }
+
+  const mappings = {};
+  const customColumns = [];
+  document.querySelectorAll('#mappingTableBody select').forEach(sel => {
+    const col = sel.dataset.col;
+    const val = sel.value;
+    if (val === '__custom__') {
+      customColumns.push(col);
+    } else if (val) {
+      mappings[col] = val;
+    }
+  });
+
+  const saveConfig = document.getElementById('saveConfigCheck').checked;
+
+  document.getElementById('mappingProgress').classList.remove('d-none');
+
+  try {
+    // First, apply the mapping
+    const mappingRes = await fetch('/api/mapping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        parse_id: currentParseId,
+        brand_name: brand,
+        mappings,
+        custom_columns: customColumns,
+        save_config: saveConfig
+      })
+    });
+    const mappingData = await mappingRes.json();
+
+    if (!mappingRes.ok) {
+      errEl.textContent = mappingData.error || 'Mapping gagal';
+      errEl.classList.remove('d-none');
+      return;
+    }
+
+    // Check for multi-brand detection
+    try {
+      const brandDetectionRes = await fetch(`/api/parse/${currentParseId}/detect-brands`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const brandDetectionData = await brandDetectionRes.json();
+      
+      if (brandDetectionRes.ok && brandDetectionData.success && brandDetectionData.is_multi_brand) {
+        // Multi-brand detected - redirect to brand selection
+        const brandDataParam = encodeURIComponent(JSON.stringify(brandDetectionData.brand_selection_data));
+        window.location.href = `/brand-selection?parse_id=${currentParseId}&brand_data=${brandDataParam}`;
+        return;
+      }
+    } catch (brandDetectionError) {
+      // If brand detection fails, continue with single-brand workflow
+      console.warn('Brand detection failed, continuing with single-brand workflow:', brandDetectionError);
+    }
+
+    // Single-brand workflow - redirect to configure
+    window.location.href = `/configure?mapping_id=${mappingData.mapping_id}&brand_name=${encodeURIComponent(brand)}`;
+
+  } catch (err) {
+    errEl.textContent = 'Terjadi kesalahan: ' + err.message;
+    errEl.classList.remove('d-none');
+  } finally {
+    document.getElementById('mappingProgress').classList.add('d-none');
+  }
+}
+
+function showToast(msg, type = 'info') {
+  const div = document.createElement('div');
+  div.className = `alert alert-${type} alert-dismissible fade show position-fixed bottom-0 end-0 m-3`;
+  div.style.zIndex = 9999;
+  div.innerHTML = `${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 4000);
+}
+
+async function clearAllCache() {
+  if (!confirm('Clear semua cache? Anda perlu re-upload file setelah ini.')) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/clear-cache', { method: 'POST' });
+    const data = await res.json();
+
+    if (data.success) {
+      showToast('✓ Cache berhasil dihapus! Silakan upload file lagi.', 'success');
+      console.log('Cleared:', data.cleared);
+      // Reset UI
+      resetUpload();
+      currentParseId = null;
+    } else {
+      showToast('⚠ Cache dihapus sebagian. Lihat console untuk detail.', 'warning');
+      console.warn('Errors:', data.errors);
+    }
+  } catch (err) {
+    showToast('✗ Gagal clear cache: ' + err.message, 'danger');
+  }
+}
+</script>
+{% endblock %}

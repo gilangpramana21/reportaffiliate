@@ -1,0 +1,1310 @@
+{% extends "base.html" %}
+{% block title %}Konfigurasi Laporan{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/" class="text-success">Upload</a></li>
+        <li class="breadcrumb-item active">Konfigurasi & Generate Laporan</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="fw-bold mb-0"><i class="bi bi-gear me-2 text-success"></i>Konfigurasi Laporan</h4>
+      <div id="mappingBadge" class="badge bg-success d-none">
+        <i class="bi bi-check2 me-1"></i>Data siap
+      </div>
+    </div>
+
+    <!-- Template Info Card -->
+    <div class="card mb-4" id="templateInfoCard" style="display: none;">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-file-earmark-check me-1"></i>Informasi Template Excel</span>
+        <span id="templateTypeBadge" class="badge bg-info"></span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-check-circle text-success me-2"></i>
+              <span class="fw-semibold">Template Terdeteksi:</span>
+              <span id="templateName" class="ms-2"></span>
+            </div>
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-graph-up text-primary me-2"></i>
+              <span class="fw-semibold">Confidence:</span>
+              <span id="templateConfidence" class="ms-2"></span>
+            </div>
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-collection-play text-warning me-2"></i>
+              <span class="fw-semibold">Multi-Video Support:</span>
+              <span id="multiVideoSupport" class="ms-2"></span>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-2">
+              <span class="fw-semibold">Video Columns:</span>
+              <div id="videoColumnsList" class="mt-1"></div>
+            </div>
+            <div class="mb-2">
+              <span class="fw-semibold">Parsing Strategy:</span>
+              <span id="parsingStrategy" class="ms-2 badge bg-secondary"></span>
+            </div>
+          </div>
+        </div>
+        <div id="templateSuggestions" class="mt-3" style="display: none;">
+          <h6 class="fw-semibold text-warning"><i class="bi bi-lightbulb me-1"></i>Saran Perbaikan:</h6>
+          <ul id="suggestionsList" class="mb-0 small"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report Config Card -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold bg-success text-white">
+        <i class="bi bi-file-earmark-text me-1"></i>Informasi Laporan
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Nama Brand <span class="text-danger">*</span></label>
+            <input type="text" id="brandName" class="form-control" placeholder="Nama brand" />
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Nomor Batch <span class="text-danger">*</span></label>
+            <input type="number" id="batchNumber" class="form-control" placeholder="Contoh: 6" min="1" />
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Periode Mulai <span class="text-danger">*</span></label>
+            <input type="date" id="periodStart" class="form-control" />
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Periode Akhir <span class="text-danger">*</span></label>
+            <input type="date" id="periodEnd" class="form-control" />
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label">GMV Batch Sebelumnya <span class="text-muted small">(opsional)</span></label>
+            <div class="input-group">
+              <span class="input-group-text">Rp</span>
+              <input type="number" id="prevGmv" class="form-control" placeholder="0" min="0" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Brand Profile Card -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-building me-1"></i>Brand Profile</span>
+        <span id="brandLoadStatus" class="badge bg-secondary d-none">Memuat...</span>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">SKU List</label>
+          <div id="skuList" class="mb-2"></div>
+          <div class="input-group input-group-sm" style="max-width:400px">
+            <input type="text" id="skuInput" class="form-control" placeholder="Tambah SKU..." />
+            <button class="btn btn-outline-success" type="button" onclick="addSku()">
+              <i class="bi bi-plus"></i> Tambah
+            </button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">SOW (Scope of Work)</label>
+          <textarea id="sowInput" class="form-control" rows="3"
+            placeholder="Deskripsikan ketentuan kerjasama antara brand dan creator affiliate..."></textarea>
+        </div>
+        <button type="button" class="btn btn-outline-success btn-sm" onclick="saveBrandProfile()">
+          <i class="bi bi-save me-1"></i>Simpan Brand Profile
+        </button>
+        <span id="brandSaveStatus" class="ms-2 small text-muted"></span>
+      </div>
+    </div>
+
+    <!-- Engagement Card -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="bi bi-bar-chart me-1"></i>Data Engagement <span class="text-muted small fw-normal">(opsional)</span></span>        <div class="d-flex gap-2 align-items-center">
+          <button class="btn btn-sm btn-outline-success" id="btnScrape20" type="button" onclick="startScraping(20)">
+            <i class="bi bi-arrow-repeat me-1"></i>Scrape 20 Creator
+          </button>
+          <button class="btn btn-sm btn-success" id="btnScrapeAll" type="button" onclick="startScraping(9999)">
+            <i class="bi bi-collection me-1"></i>Scrape Semua
+          </button>
+          <button class="btn btn-sm btn-outline-danger d-none" id="btnStopScrape" type="button" onclick="stopScraping()">
+            <i class="bi bi-stop-circle me-1"></i>Stop
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- Stale Mapping Warning -->
+        <div id="staleMappingWarning" class="alert alert-warning d-none mb-3" role="alert">
+          <div class="d-flex align-items-start">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+            <div class="flex-grow-1">
+              <h6 class="alert-heading mb-2">⚠️ Mapping Lama Terdeteksi</h6>
+              <p class="mb-2 small">
+                Mapping ini tidak memiliki video links. Kemungkinan dibuat sebelum fitur video extraction diaktifkan 
+                atau saat SKIP_VIDEO_EXTRACTION=true.
+              </p>
+              <div class="d-flex gap-2 align-items-center">
+                <button class="btn btn-sm btn-primary" type="button" onclick="reparseMapping()" id="btnReparse">
+                  <i class="bi bi-arrow-repeat me-1"></i>Re-parse File untuk Extract Video Links
+                </button>
+                <span class="small text-muted" id="reparseStatus"></span>
+              </div>
+              <div id="reparseError" class="alert alert-danger mt-2 mb-0 d-none small"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Progress bar -->
+        <div id="scrapeProgressWrapper" class="d-none mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small fw-semibold" id="scrapeProgressLabel">Scraping...</span>
+            <span class="small text-muted" id="scrapeProgressEta"></span>
+          </div>
+          <div class="progress" style="height:8px">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                 id="scrapeProgressBar" role="progressbar" style="width:0%"></div>
+          </div>
+          <div class="small text-muted mt-1" id="scrapeProgressDetail"></div>
+        </div>
+
+        <p class="text-muted small mb-3">Views, likes, dan comments per creator diambil otomatis dari link video di spreadsheet. Total dihitung otomatis.</p>
+
+        <!-- Tabel per creator -->
+        <div id="creatorEngagementWrapper" class="d-none mb-4">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle" id="creatorEngagementTable">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:40px">#</th>
+                  <th>Username</th>
+                  <th style="width:100px">Views</th>
+                  <th style="width:100px">Likes</th>
+                  <th style="width:100px">Comments</th>
+                </tr>
+              </thead>
+              <tbody id="creatorEngagementBody"></tbody>
+              <tfoot class="table-success fw-bold">
+                <tr>
+                  <td colspan="2">TOTAL</td>
+                  <td id="sumViews">0</td>
+                  <td id="sumLikes">0</td>
+                  <td id="sumComments">0</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <button class="btn btn-sm btn-success mb-3" type="button" onclick="applyEngagementTotals()">
+            <i class="bi bi-check2 me-1"></i>Terapkan Total ke Form
+          </button>
+        </div>
+        <!-- Input total manual -->
+        <div class="row g-3">
+          <div class="col-sm-4">
+            <label class="form-label">Total Views</label>
+            <input type="number" id="totalViews" class="form-control" placeholder="0" min="0" oninput="syncEngagementTotals()" />
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label">Total Likes</label>
+            <input type="number" id="totalLikes" class="form-control" placeholder="0" min="0" oninput="syncEngagementTotals()" />
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label">Total Comments</label>
+            <input type="number" id="totalComments" class="form-control" placeholder="0" min="0" oninput="syncEngagementTotals()" />
+          </div>
+          <div class="col-12">
+            <div id="engagementAppliedBadge" class="d-none">
+              <span class="badge bg-success"><i class="bi bi-check2 me-1"></i>Data engagement sudah diterapkan ke laporan</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Insight Card -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-lightbulb me-1"></i>Insight
+        <span class="text-muted small fw-normal ms-1">(opsional)</span>
+      </div>
+      <div class="card-body">
+        <textarea id="insightInput" class="form-control" rows="4"
+          placeholder="Contoh: Dari 200 akun creator yang sudah posting video ada 148 akun creator dan sudah ada 293 video upload..."></textarea>
+      </div>
+    </div>
+
+    <!-- Next Plan Card -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-calendar-check me-1"></i>Next Plan
+        <span class="text-muted small fw-normal ms-1">(opsional)</span>
+      </div>
+      <div class="card-body">
+        <textarea id="nextPlanInput" class="form-control" rows="4"
+          placeholder="Contoh: Follow up creator yang sudah menerima sample tapi belum upload..."></textarea>
+      </div>
+    </div>
+
+    <!-- Data Manual Card -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-123 me-1"></i>Data Manual
+        <span class="text-muted small fw-normal ms-1">(opsional — untuk Performance Summary)</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-sm-4">
+            <label class="form-label">Total Pesanan (settled)</label>
+            <input type="number" id="totalPesanan" class="form-control" placeholder="Contoh: 51868" min="0" />
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label">Total Produk Terjual</label>
+            <input type="number" id="totalProdukTerjual" class="form-control" placeholder="Contoh: 52700" min="0" />
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label">Total Affiliate Create Sale</label>
+            <input type="number" id="totalCreateSale" class="form-control" placeholder="Contoh: 178" min="0" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overall Conclusion Card -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-clipboard-data me-1"></i>Overall Data Conclusion
+        <span class="text-muted small fw-normal ms-1">(opsional)</span>
+      </div>
+      <div class="card-body">
+        <textarea id="overallConclusion" class="form-control" rows="3"
+          placeholder="Contoh: Dari total 578 creator, ada 200 yang sudah deal. Saat ini sudah ada 293 video yang sudah posting..."></textarea>
+      </div>
+    </div>
+
+    <!-- Next Planning Card -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-diagram-3 me-1"></i>Next Planning (Strategi)
+        <span class="text-muted small fw-normal ms-1">(opsional)</span>
+      </div>
+      <div class="card-body">
+        <textarea id="nextPlanning" class="form-control" rows="4"
+          placeholder="Contoh: W1: Re-approach creator dari batch sebelumnya, kirim ulang sample...&#10;W2-W3: Monitoring performa, scaling creator yang perform...&#10;W4: Evaluasi performa seluruh creator..."></textarea>
+      </div>
+    </div>
+
+    <!-- Screenshot per Section Card -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-images me-1"></i>Screenshot Bukti per Section
+        <span class="text-muted small fw-normal ms-1">(opsional — akan ditampilkan di laporan)</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">Upload screenshot sebagai bukti untuk setiap section laporan. Bisa lebih dari 1 gambar per section.</p>
+        <div class="row g-3" id="sectionImageUploaders">
+          <!-- Dirender oleh JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Generate Button -->
+    <div id="generateError" class="alert alert-danger d-none"></div>
+    <div id="generateSuccess" class="alert alert-success d-none">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <i class="bi bi-check-circle-fill fs-5"></i>
+        <strong>Laporan berhasil dibuat!</strong>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a id="downloadLink" href="#" class="btn btn-success" target="_blank">
+          <i class="bi bi-file-pdf me-1"></i>Download PDF
+        </a>
+        <a id="downloadPptLink" href="#" class="btn btn-outline-success d-none" target="_blank">
+          <i class="bi bi-file-earmark-ppt me-1"></i>Download PPT
+        </a>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-3 mb-5">
+      <button type="button" class="btn btn-accent px-4 py-2" id="btnGenerate" onclick="generateReport()">
+        <i class="bi bi-file-earmark-arrow-down me-1"></i>Generate Laporan
+      </button>
+      <span class="text-muted small"><i class="bi bi-info-circle me-1"></i>Menghasilkan file PDF &amp; PPT</span>
+      <div id="generateProgress" class="d-none">
+        <div class="d-flex align-items-center gap-2">
+          <div class="spinner-border spinner-border-sm text-success"></div>
+          <span class="text-muted small">Membuat laporan PDF &amp; PPT...</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Read query params
+const params = new URLSearchParams(window.location.search);
+const mappingId = params.get('mapping_id') || '';
+const brandNameParam = params.get('brand_name') || '';
+
+let currentBrandId = null;
+let skuItems = [];
+let templateInfo = null;
+
+// Show data ready badge if mapping_id present
+if (mappingId) {
+  document.getElementById('mappingBadge').classList.remove('d-none');
+  // Load template info
+  loadTemplateInfo();
+}
+
+async function loadTemplateInfo() {
+  if (!mappingId) return;
+  
+  try {
+    const res = await fetch(`/api/mapping/${mappingId}/creators`);
+    if (res.ok) {
+      const data = await res.json();
+      
+      // Check for stale mapping
+      if (data.is_stale_mapping) {
+        showStaleMappingWarning(data);
+      }
+      
+      if (data.template_info) {
+        templateInfo = data.template_info;
+        displayTemplateInfo(templateInfo);
+      }
+    }
+  } catch (err) {
+    console.log('Template info not available:', err);
+  }
+}
+
+function displayTemplateInfo(info) {
+  const card = document.getElementById('templateInfoCard');
+  const typeBadge = document.getElementById('templateTypeBadge');
+  const templateName = document.getElementById('templateName');
+  const confidence = document.getElementById('templateConfidence');
+  const multiVideo = document.getElementById('multiVideoSupport');
+  const videoColumns = document.getElementById('videoColumnsList');
+  const strategy = document.getElementById('parsingStrategy');
+  
+  // Show card
+  card.style.display = 'block';
+  
+  // Template type badge
+  const typeMap = {
+    'florist': { text: 'FLORIST', class: 'bg-success' },
+    'untitled_spreadsheet': { text: 'UNTITLED', class: 'bg-primary' },
+    'generic': { text: 'GENERIC', class: 'bg-secondary' }
+  };
+  const typeInfo = typeMap[info.template_type] || { text: 'UNKNOWN', class: 'bg-dark' };
+  typeBadge.textContent = typeInfo.text;
+  typeBadge.className = `badge ${typeInfo.class}`;
+  
+  // Template details
+  templateName.textContent = info.template_type.replace('_', ' ').toUpperCase();
+  
+  const confidencePercent = Math.round(info.confidence * 100);
+  confidence.innerHTML = `<span class="badge ${confidencePercent >= 70 ? 'bg-success' : confidencePercent >= 50 ? 'bg-warning' : 'bg-danger'}">${confidencePercent}%</span>`;
+  
+  multiVideo.innerHTML = info.multi_video_support 
+    ? '<span class="badge bg-success"><i class="bi bi-check"></i> Ya</span>'
+    : '<span class="badge bg-secondary"><i class="bi bi-x"></i> Tidak</span>';
+  
+  // Video columns
+  if (info.video_columns && info.video_columns.length > 0) {
+    videoColumns.innerHTML = info.video_columns.map(col => 
+      `<span class="badge bg-light text-dark border me-1 mb-1">${col}</span>`
+    ).join('');
+  } else {
+    videoColumns.innerHTML = '<span class="text-muted small">Tidak ada</span>';
+  }
+  
+  // Parsing strategy
+  const strategyMap = {
+    'single_column': { text: 'Single Column', class: 'bg-info' },
+    'multi_column': { text: 'Multi Column', class: 'bg-success' },
+    'hybrid': { text: 'Hybrid', class: 'bg-warning' }
+  };
+  const strategyInfo = strategyMap[info.parsing_strategy] || { text: 'Unknown', class: 'bg-secondary' };
+  strategy.textContent = strategyInfo.text;
+  strategy.className = `ms-2 badge ${strategyInfo.class}`;
+  
+  // Load suggestions if confidence is low
+  if (info.confidence < 0.7) {
+    loadTemplateSuggestions();
+  }
+}
+
+async function loadTemplateSuggestions() {
+  // This would require the parse_id, which we don't have in configure page
+  // For now, show generic suggestions based on template info
+  const suggestions = [];
+  
+  if (templateInfo.confidence < 0.7) {
+    suggestions.push('Template tidak sepenuhnya dikenali. Gunakan nama kolom standar seperti "USERNAME", "LINK VIDEO".');
+  }
+  
+  if (!templateInfo.multi_video_support) {
+    suggestions.push('Template ini tidak mendukung multiple video per creator. Tambahkan kolom "UPDATE VT FOLLOWUP" untuk fitur ini.');
+  }
+  
+  if (!templateInfo.video_columns || templateInfo.video_columns.length === 0) {
+    suggestions.push('Tidak ditemukan kolom video. Pastikan ada kolom "LINK VIDEO" atau "VIDEO LINK".');
+  }
+  
+  if (suggestions.length > 0) {
+    const suggestionsCard = document.getElementById('templateSuggestions');
+    const suggestionsList = document.getElementById('suggestionsList');
+    
+    suggestionsList.innerHTML = suggestions.map(s => `<li>${s}</li>`).join('');
+    suggestionsCard.style.display = 'block';
+  }
+}
+
+// Stale Mapping Detection and Re-parse Functions
+function showStaleMappingWarning(data) {
+  const warningEl = document.getElementById('staleMappingWarning');
+  const reparseBtn = document.getElementById('btnReparse');
+  const scrapeBtn20 = document.getElementById('btnScrape20');
+  const scrapeBtnAll = document.getElementById('btnScrapeAll');
+  
+  // Show warning
+  warningEl.classList.remove('d-none');
+  
+  // Disable scraping buttons until re-parse
+  scrapeBtn20.disabled = true;
+  scrapeBtnAll.disabled = true;
+  
+  // Update button text based on file existence
+  if (data.file_exists === false) {
+    reparseBtn.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>File Tidak Ditemukan - Upload Ulang';
+    reparseBtn.classList.remove('btn-primary');
+    reparseBtn.classList.add('btn-warning');
+    reparseBtn.disabled = true;
+    
+    const errorEl = document.getElementById('reparseError');
+    errorEl.textContent = 'File Excel asli tidak ditemukan di server. Silakan upload ulang file Excel Anda dari halaman Upload.';
+    errorEl.classList.remove('d-none');
+  }
+  
+  console.log('[STALE MAPPING] Detected stale mapping:', data);
+}
+
+async function reparseMapping() {
+  if (!mappingId) {
+    alert('Tidak ada mapping_id. Kembali ke halaman upload.');
+    return;
+  }
+  
+  const reparseBtn = document.getElementById('btnReparse');
+  const statusEl = document.getElementById('reparseStatus');
+  const errorEl = document.getElementById('reparseError');
+  
+  // Show loading state
+  reparseBtn.disabled = true;
+  reparseBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Re-parsing...';
+  statusEl.textContent = 'Sedang re-parse file...';
+  errorEl.classList.add('d-none');
+  
+  try {
+    const res = await fetch(`/api/mapping/${mappingId}/reparse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const data = await res.json();
+    
+    if (!res.ok) {
+      // Error response
+      errorEl.textContent = data.error || 'Gagal re-parse file.';
+      if (data.suggestion) {
+        errorEl.textContent += ' ' + data.suggestion;
+      }
+      errorEl.classList.remove('d-none');
+      
+      // Reset button
+      reparseBtn.disabled = false;
+      reparseBtn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Re-parse File untuk Extract Video Links';
+      statusEl.textContent = '';
+      
+      return;
+    }
+    
+    // Success - redirect to Configure page with new mapping_id
+    statusEl.textContent = `Berhasil! Ditemukan ${data.video_links_count} video links. Redirecting...`;
+    statusEl.classList.add('text-success');
+    
+    console.log('[REPARSE] Success:', data);
+    
+    // Show success notification
+    showToast(`File berhasil di-parse ulang! Ditemukan ${data.video_links_count} video links.`, 'success');
+    
+    // Redirect to Configure page with new mapping_id
+    setTimeout(() => {
+      window.location.href = `/configure?mapping_id=${data.new_mapping_id}&brand_name=${encodeURIComponent(data.brand_name)}`;
+    }, 1500);
+    
+  } catch (err) {
+    errorEl.textContent = 'Error: ' + err.message;
+    errorEl.classList.remove('d-none');
+    
+    // Reset button
+    reparseBtn.disabled = false;
+    reparseBtn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Re-parse File untuk Extract Video Links';
+    statusEl.textContent = '';
+  }
+}
+
+// Pre-fill brand name
+if (brandNameParam) {
+  document.getElementById('brandName').value = brandNameParam;
+  loadBrandProfile(brandNameParam);
+}
+
+document.getElementById('brandName').addEventListener('blur', function() {
+  const name = this.value.trim();
+  if (name) loadBrandProfile(name);
+});
+
+async function loadBrandProfile(name) {
+  const badge = document.getElementById('brandLoadStatus');
+  badge.textContent = 'Memuat...';
+  badge.classList.remove('d-none', 'bg-success', 'bg-danger');
+  badge.classList.add('bg-secondary');
+
+  try {
+    const res = await fetch(`/api/brands/${encodeURIComponent(name)}`);
+    if (res.ok) {
+      const data = await res.json();
+      currentBrandId = data.id;
+      skuItems = data.sku_list || [];
+      renderSkuList();
+      document.getElementById('sowInput').value = data.sow || '';
+      badge.textContent = 'Profile dimuat';
+      badge.classList.replace('bg-secondary', 'bg-success');
+    } else {
+      currentBrandId = null;
+      skuItems = [];
+      renderSkuList();
+      badge.textContent = 'Brand baru';
+      badge.classList.replace('bg-secondary', 'bg-secondary');
+      badge.classList.add('d-none');
+    }
+  } catch (_) {
+    badge.classList.add('d-none');
+  }
+}
+
+function renderSkuList() {
+  const el = document.getElementById('skuList');
+  if (skuItems.length === 0) {
+    el.innerHTML = '<span class="text-muted small">Belum ada SKU.</span>';
+    return;
+  }
+  el.innerHTML = skuItems.map((sku, i) => `
+    <span class="badge bg-light text-dark border me-1 mb-1 p-2">
+      ${sku}
+      <button type="button" class="btn-close btn-close-sm ms-1" style="font-size:.6rem"
+        onclick="removeSku(${i})"></button>
+    </span>`).join('');
+}
+
+function addSku() {
+  const input = document.getElementById('skuInput');
+  const val = input.value.trim();
+  if (!val) return;
+  skuItems.push(val);
+  input.value = '';
+  renderSkuList();
+}
+
+document.getElementById('skuInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addSku(); }
+});
+
+function removeSku(idx) {
+  skuItems.splice(idx, 1);
+  renderSkuList();
+}
+
+async function saveBrandProfile() {
+  const name = document.getElementById('brandName').value.trim();
+  const sow = document.getElementById('sowInput').value.trim();
+  const statusEl = document.getElementById('brandSaveStatus');
+
+  if (!name) {
+    statusEl.textContent = 'Isi nama brand terlebih dahulu.';
+    statusEl.className = 'ms-2 small text-danger';
+    return;
+  }
+
+  statusEl.textContent = 'Menyimpan...';
+  statusEl.className = 'ms-2 small text-muted';
+
+  try {
+    let res, data;
+    if (currentBrandId) {
+      res = await fetch(`/api/brands/${currentBrandId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sku_list: skuItems, sow })
+      });
+    } else {
+      res = await fetch('/api/brands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, sku_list: skuItems, sow })
+      });
+    }
+    data = await res.json();
+
+    if (res.ok) {
+      currentBrandId = data.brand_profile?.id || currentBrandId;
+      statusEl.textContent = 'Tersimpan!';
+      statusEl.className = 'ms-2 small text-success';
+    } else {
+      statusEl.textContent = data.error || 'Gagal menyimpan.';
+      statusEl.className = 'ms-2 small text-danger';
+    }
+  } catch (err) {
+    statusEl.textContent = 'Error: ' + err.message;
+    statusEl.className = 'ms-2 small text-danger';
+  }
+}
+
+// ---- Scraping state ----
+let _scrapeJobId = null;
+let _scrapeInterval = null;
+let _creatorList = [];
+let _activeVideoLinksMap = {};
+let _scrapeStartTime = null;
+
+async function startScraping(limit) {
+  if (!mappingId) { alert('Tidak ada data mapping. Kembali ke halaman upload.'); return; }
+  if (_scrapeInterval) { clearInterval(_scrapeInterval); _scrapeInterval = null; }
+  _scrapeJobId = null;
+
+  try {
+    const res = await fetch(`/api/mapping/${mappingId}/creators`);
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || 'Gagal memuat creator.'); return; }
+
+    _creatorList = data.creators || [];
+    const videoLinksMap = data.video_links_map || {};
+    _activeVideoLinksMap = videoLinksMap;
+
+    if (!_creatorList.length) { alert('Tidak ada creator ditemukan.'); return; }
+
+    // Render tabel - 1 baris per creator dengan total, expandable jika >1 video
+    const tbody = document.getElementById('creatorEngagementBody');
+    let rowHtml = '';
+    let rowCounter = 0;
+    
+    _creatorList.forEach((c, creatorIdx) => {
+      const hasLink = !!videoLinksMap[c.username];
+      const videoLinks = videoLinksMap[c.username] || [];
+      const linkCount = videoLinks.length;
+      
+      console.log(`[TABLE] Creator ${c.username}: ${linkCount} video links`, videoLinks);
+      
+      if (hasLink) {
+        // Baris utama - tampilkan total
+        const expandIcon = linkCount > 1 ? '<i class="bi bi-chevron-right expand-icon" style="cursor:pointer"></i> ' : '';
+        const linkBadge = linkCount > 1 ? ` <span class="badge bg-warning text-dark" title="${linkCount} link video">🔗×${linkCount}</span>` : ' <span class="badge bg-info text-dark">🔗</span>';
+        
+        rowHtml += `
+        <tr class="creator-main-row" data-username="${c.username}" data-video-count="${linkCount}" data-row-id="${rowCounter}">
+          <td class="text-muted small">${creatorIdx + 1}</td>
+          <td>
+            ${expandIcon}<span class="fw-semibold">@${c.username}</span>${linkBadge}
+          </td>
+          <td><input type="number" class="form-control form-control-sm eng-views" id="views-total-${rowCounter}" min="0" placeholder="—" oninput="recalcEngagement()" data-username="${c.username}"/></td>
+          <td><input type="number" class="form-control form-control-sm eng-likes" id="likes-total-${rowCounter}" min="0" placeholder="—" oninput="recalcEngagement()" data-username="${c.username}"/></td>
+          <td><input type="number" class="form-control form-control-sm eng-comments" id="comments-total-${rowCounter}" min="0" placeholder="—" oninput="recalcEngagement()" data-username="${c.username}"/></td>
+        </tr>`;
+        
+        // Baris detail per video (hidden by default)
+        if (linkCount > 1) {
+          videoLinks.forEach((link, vidIdx) => {
+            rowHtml += `
+            <tr class="creator-detail-row d-none" data-parent-row="${rowCounter}" data-username="${c.username}" data-video-idx="${vidIdx}">
+              <td></td>
+              <td class="ps-4"><small class="text-muted"><i class="bi bi-arrow-return-right me-1"></i>Video ${vidIdx + 1}</small></td>
+              <td><input type="number" class="form-control form-control-sm form-control-plaintext eng-views-detail" id="views-${rowCounter}-${vidIdx}" min="0" placeholder="—" readonly style="background:transparent;border:0;padding:0.25rem 0.5rem" data-parent-row="${rowCounter}" data-username="${c.username}"/></td>
+              <td><input type="number" class="form-control form-control-sm form-control-plaintext eng-likes-detail" id="likes-${rowCounter}-${vidIdx}" min="0" placeholder="—" readonly style="background:transparent;border:0;padding:0.25rem 0.5rem" data-parent-row="${rowCounter}" data-username="${c.username}"/></td>
+              <td><input type="number" class="form-control form-control-sm form-control-plaintext eng-comments-detail" id="comments-${rowCounter}-${vidIdx}" min="0" placeholder="—" readonly style="background:transparent;border:0;padding:0.25rem 0.5rem" data-parent-row="${rowCounter}" data-username="${c.username}"/></td>
+            </tr>`;
+          });
+        }
+        
+        rowCounter++;
+      } else {
+        // No link
+        rowHtml += `
+        <tr class="creator-main-row" data-username="${c.username}" data-video-count="0" data-row-id="${rowCounter}">
+          <td class="text-muted small">${creatorIdx + 1}</td>
+          <td><span class="fw-semibold">@${c.username}</span></td>
+          <td><input type="number" class="form-control form-control-sm" min="0" placeholder="N/A" disabled/></td>
+          <td><input type="number" class="form-control form-control-sm" min="0" placeholder="N/A" disabled/></td>
+          <td><input type="number" class="form-control form-control-sm" min="0" placeholder="N/A" disabled/></td>
+        </tr>`;
+        rowCounter++;
+      }
+    });
+    
+    tbody.innerHTML = rowHtml;
+    
+    // Add click handler untuk expand/collapse
+    document.querySelectorAll('.creator-main-row .expand-icon').forEach(icon => {
+      icon.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const row = this.closest('tr');
+        const rowId = row.dataset.rowId;
+        const detailRows = document.querySelectorAll(`tr.creator-detail-row[data-parent-row="${rowId}"]`);
+        const isExpanded = !detailRows[0].classList.contains('d-none');
+        
+        detailRows.forEach(dr => {
+          if (isExpanded) {
+            dr.classList.add('d-none');
+          } else {
+            dr.classList.remove('d-none');
+          }
+        });
+        
+        // Toggle icon
+        if (isExpanded) {
+          this.classList.remove('bi-chevron-down');
+          this.classList.add('bi-chevron-right');
+        } else {
+          this.classList.remove('bi-chevron-right');
+          this.classList.add('bi-chevron-down');
+        }
+      });
+    });
+    
+    document.getElementById('creatorEngagementWrapper').classList.remove('d-none');
+
+    // Filter creator yang punya link, batasi sesuai limit
+    const usernamesWithLinks = _creatorList
+      .filter(c => videoLinksMap[c.username])
+      .slice(0, limit)
+      .map(c => c.username);
+
+    if (usernamesWithLinks.length === 0) {
+      alert('Tidak ada creator dengan link video. Pastikan file Excel memiliki kolom LINK VIDEO dan sudah di-upload ulang.');
+      return;
+    }
+
+    // Estimasi waktu: ~12 detik per creator (sequential)
+    const estSeconds = usernamesWithLinks.length * 12;
+    const estMin = Math.ceil(estSeconds / 60);
+
+    const scrapeRes = await fetch('/api/scrape/engagement', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ usernames: usernamesWithLinks, max_videos: 20, video_links_map: videoLinksMap })
+    });
+    const scrapeData = await scrapeRes.json();
+    if (!scrapeRes.ok) { alert(scrapeData.error || 'Gagal memulai scraping.'); return; }
+
+    _scrapeJobId = scrapeData.job_id;
+    _scrapeStartTime = Date.now();
+    console.log('Scrape job started:', _scrapeJobId, 'total:', scrapeData.total);
+
+    // Update UI
+    document.getElementById('btnScrape20').disabled = true;
+    document.getElementById('btnScrapeAll').disabled = true;
+    document.getElementById('btnStopScrape').classList.remove('d-none');
+    document.getElementById('scrapeProgressWrapper').classList.remove('d-none');
+    document.getElementById('scrapeProgressLabel').textContent = `Scraping 0/${usernamesWithLinks.length} creator...`;
+    document.getElementById('scrapeProgressEta').textContent = `Estimasi: ~${estMin} menit`;
+    document.getElementById('scrapeProgressBar').style.width = '0%';
+
+    _scrapeInterval = setInterval(pollScrapeStatus, 3000);
+  } catch (err) { alert('Error: ' + err.message); }
+}
+
+function stopScraping() {
+  if (_scrapeInterval) { clearInterval(_scrapeInterval); _scrapeInterval = null; }
+  _scrapeJobId = null;
+  document.getElementById('btnScrape20').disabled = false;
+  document.getElementById('btnScrapeAll').disabled = false;
+  document.getElementById('btnStopScrape').classList.add('d-none');
+  document.getElementById('scrapeProgressWrapper').classList.add('d-none');
+  showToast('Scraping dihentikan.', 'warning');
+  applyEngagementTotals();
+}
+
+// Backward compat
+async function loadCreatorEngagement() { await startScraping(20); }
+async function loadCreatorEngagementAll() { await startScraping(9999); }
+
+async function pollScrapeStatus() {
+  if (!_scrapeJobId) return;
+  try {
+    const res = await fetch(`/api/scrape/status/${_scrapeJobId}`);
+    const data = await res.json();
+
+    // Simpan hasil scraping ke variabel global untuk digunakan saat generate
+    window._lastScrapeResults = data.results || [];
+
+    // Update progress bar
+    const pct = data.total > 0 ? Math.round(data.done / data.total * 100) : 0;
+    document.getElementById('scrapeProgressBar').style.width = pct + '%';
+    document.getElementById('scrapeProgressLabel').textContent = `Scraping ${data.done}/${data.total} creator...`;
+
+    // Estimasi sisa waktu
+    if (_scrapeStartTime && data.done > 0) {
+      const elapsed = (Date.now() - _scrapeStartTime) / 1000;
+      const perItem = elapsed / data.done;
+      const remaining = Math.ceil(perItem * (data.total - data.done));
+      document.getElementById('scrapeProgressEta').textContent =
+        remaining > 60 ? `Sisa ~${Math.ceil(remaining/60)} menit` : `Sisa ~${remaining} detik`;
+    }
+
+    // Update tabel berdasarkan username dan video index
+    (data.results || []).forEach((r) => {
+      const mainRow = document.querySelector(`tr.creator-main-row[data-username="${r.username}"]`);
+      if (!mainRow) return;
+
+      const rowId = mainRow.dataset.rowId;
+      const videoCount = parseInt(mainRow.dataset.videoCount || '0');
+      const hasData = r.total_views > 0 || r.total_likes > 0 || r.total_comments > 0;
+      const videos = r.videos || [];
+      
+      console.log(`[SCRAPE] Updating ${r.username}: ${videos.length} videos`);
+
+      if (!r.error || hasData) {
+        // Update total di baris utama
+        const vTotalEl = document.getElementById(`views-total-${rowId}`);
+        const lTotalEl = document.getElementById(`likes-total-${rowId}`);
+        const cTotalEl = document.getElementById(`comments-total-${rowId}`);
+        
+        if (vTotalEl) {
+          vTotalEl.value = r.total_views || 0;
+          lTotalEl.value = r.total_likes || 0;
+          cTotalEl.value = r.total_comments || 0;
+          vTotalEl.disabled = false;
+          lTotalEl.disabled = false;
+          cTotalEl.disabled = false;
+        }
+        
+        // Update detail per video jika ada >1 video
+        if (videoCount > 1 && videos.length > 0) {
+          videos.forEach((video, vidIdx) => {
+            const vEl = document.getElementById(`views-${rowId}-${vidIdx}`);
+            const lEl = document.getElementById(`likes-${rowId}-${vidIdx}`);
+            const cEl = document.getElementById(`comments-${rowId}-${vidIdx}`);
+            
+            if (vEl) {
+              vEl.value = video.views || 0;
+              lEl.value = video.likes || 0;
+              cEl.value = video.comments || 0;
+            }
+          });
+        }
+      } else if (!r.error || r.error !== 'skip') {
+        // Error - enable manual input
+        const vTotalEl = document.getElementById(`views-total-${rowId}`);
+        const lTotalEl = document.getElementById(`likes-total-${rowId}`);
+        const cTotalEl = document.getElementById(`comments-total-${rowId}`);
+        if (vTotalEl) {
+          vTotalEl.disabled = false;
+          lTotalEl.disabled = false;
+          cTotalEl.disabled = false;
+        }
+      }
+    });
+
+    recalcEngagement();
+
+    if (data.status === 'done') {
+      clearInterval(_scrapeInterval);
+      _scrapeInterval = null;
+      document.getElementById('btnScrape20').disabled = false;
+      document.getElementById('btnScrapeAll').disabled = false;
+      document.getElementById('btnStopScrape').classList.add('d-none');
+      document.getElementById('scrapeProgressBar').style.width = '100%';
+      document.getElementById('scrapeProgressBar').classList.remove('progress-bar-animated');
+      document.getElementById('scrapeProgressLabel').textContent = `Selesai: ${data.done}/${data.total} creator`;
+      document.getElementById('scrapeProgressEta').textContent = '';
+
+      const doneOk = (data.results || []).filter(r => !r.error || r.total_views > 0 || r.total_likes > 0).length;
+      const skipCount = (data.results || []).filter(r => r.error === 'skip').length;
+      const errCount = (data.results || []).filter(r => r.error && r.error !== 'skip' && !r.total_views).length;
+      let msg = `Scraping selesai: ${doneOk} berhasil`;
+      if (skipCount) msg += `, ${skipCount} dilewati`;
+      if (errCount) msg += `, ${errCount} perlu isi manual`;
+      showToast(msg, doneOk > 0 ? 'success' : 'warning');
+      applyEngagementTotals();
+    }
+  } catch (_) {}
+}
+
+function recalcEngagement() {
+  // Sum dari input total di baris utama saja (bukan detail rows)
+  const sum = (cls) => {
+    let total = 0;
+    document.querySelectorAll(`tr.creator-main-row .${cls}`).forEach(el => {
+      if (!el.disabled) {
+        total += parseInt(el.value) || 0;
+      }
+    });
+    return total;
+  };
+  
+  document.getElementById('sumViews').textContent = sum('eng-views').toLocaleString('id-ID');
+  document.getElementById('sumLikes').textContent = sum('eng-likes').toLocaleString('id-ID');
+  document.getElementById('sumComments').textContent = sum('eng-comments').toLocaleString('id-ID');
+}
+
+function fmtNum(n) {
+  if (!n) return '0';
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'K';
+  return String(n);
+}
+
+function applyEngagementTotals() {
+  // Sum dari input total di baris utama yang tidak disabled
+  const sumEnabled = (cls) => {
+    let total = 0;
+    document.querySelectorAll(`tr.creator-main-row .${cls}:not(:disabled)`).forEach(el => {
+      total += parseInt(el.value) || 0;
+    });
+    return total;
+  };
+  
+  const vSum = sumEnabled('eng-views');
+  const lSum = sumEnabled('eng-likes');
+  const cSum = sumEnabled('eng-comments');
+
+  // Update field total — selalu update jika ada tabel creator yang tampil
+  const hasTable = document.getElementById('creatorEngagementWrapper') &&
+                   !document.getElementById('creatorEngagementWrapper').classList.contains('d-none');
+  if (hasTable) {
+    // FIX: Always set the value, even if 0 (don't use || '' which converts 0 to empty string)
+    document.getElementById('totalViews').value = vSum;
+    document.getElementById('totalLikes').value = lSum;
+    document.getElementById('totalComments').value = cSum;
+    if (vSum > 0 || lSum > 0 || cSum > 0) {
+      document.getElementById('totalViews').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById('engagementAppliedBadge').classList.remove('d-none');
+    }
+  }
+}
+
+function syncEngagementTotals() {}
+
+
+
+// ── Section Image Uploaders ───────────────────────────────────────────────────
+
+const SECTION_DEFS = [
+  { key: 'affiliate_performance_summary', label: 'Affiliate Performance Summary' },
+  { key: 'collaboration_metrics',         label: 'Collaboration-Related Metrics' },
+  { key: 'gmv_batch',                     label: 'GMV Batch' },
+  { key: 'total_engagement',              label: 'Total Engagement' },
+  { key: 'gmv_affiliate',                 label: 'GMV Affiliate Batch' },
+];
+
+// section_key → [image_id, ...]
+const _sectionImages = {};
+
+function initSectionUploaders() {
+  const container = document.getElementById('sectionImageUploaders');
+  container.innerHTML = SECTION_DEFS.map(sec => `
+    <div class="col-md-6">
+      <div class="border rounded p-3 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fw-semibold small"><i class="bi bi-camera me-1 text-success"></i>${sec.label}</span>
+          <label class="btn btn-sm btn-outline-success mb-0">
+            <i class="bi bi-plus me-1"></i>Tambah
+            <input type="file" accept="image/*" multiple class="d-none"
+                   onchange="uploadSectionImages('${sec.key}', this)" />
+          </label>
+        </div>
+        <div id="imgs_${sec.key}" class="d-flex flex-wrap gap-2">
+          <span class="text-muted small fst-italic">Belum ada gambar</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function uploadSectionImages(sectionKey, input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+
+  const formData = new FormData();
+  formData.append('section', sectionKey);
+  files.forEach(f => formData.append('files', f));
+
+  try {
+    const res = await fetch('/api/images/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Gagal upload gambar.', 'danger'); return; }
+
+    if (!_sectionImages[sectionKey]) _sectionImages[sectionKey] = [];
+    data.images.forEach(img => _sectionImages[sectionKey].push(img.image_id));
+
+    renderSectionImages(sectionKey);
+    showToast(`${data.images.length} gambar berhasil diupload.`, 'success');
+  } catch (err) {
+    showToast('Error upload: ' + err.message, 'danger');
+  }
+  input.value = '';
+}
+
+function renderSectionImages(sectionKey) {
+  const container = document.getElementById(`imgs_${sectionKey}`);
+  const imgs = _sectionImages[sectionKey] || [];
+  if (!imgs.length) {
+    container.innerHTML = '<span class="text-muted small fst-italic">Belum ada gambar</span>';
+    return;
+  }
+  container.innerHTML = imgs.map((imgId, i) => `
+    <div class="position-relative" style="width:80px;height:60px">
+      <img src="/api/images/${imgId}" class="rounded border"
+           style="width:80px;height:60px;object-fit:cover;cursor:pointer"
+           onclick="window.open('/api/images/${imgId}','_blank')"
+           title="Klik untuk lihat penuh" />
+      <button type="button"
+              class="btn btn-danger btn-sm position-absolute top-0 end-0 p-0"
+              style="width:18px;height:18px;font-size:10px;line-height:1"
+              onclick="removeSectionImage('${sectionKey}', ${i})"
+              title="Hapus">×</button>
+    </div>`).join('');
+}
+
+async function removeSectionImage(sectionKey, idx) {
+  const imgId = (_sectionImages[sectionKey] || [])[idx];
+  if (!imgId) return;
+  _sectionImages[sectionKey].splice(idx, 1);
+  renderSectionImages(sectionKey);
+  // Hapus dari server
+  try { await fetch(`/api/images/${imgId}`, { method: 'DELETE' }); } catch (_) {}
+}
+
+// Init on page load
+initSectionUploaders();
+
+function showToast(msg, type = 'success') {
+  const div = document.createElement('div');
+  div.className = `alert alert-${type} alert-dismissible fade show position-fixed bottom-0 end-0 m-3`;
+  div.style.zIndex = 9999;
+  div.innerHTML = `${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 5000);
+}
+
+async function generateReport() {
+  const errEl = document.getElementById('generateError');
+  const successEl = document.getElementById('generateSuccess');
+  errEl.classList.add('d-none');
+  successEl.classList.add('d-none');
+
+  const brandName = document.getElementById('brandName').value.trim();
+  const batchNumber = document.getElementById('batchNumber').value.trim();
+  const periodStart = document.getElementById('periodStart').value;
+  const periodEnd = document.getElementById('periodEnd').value;
+
+  if (!brandName || !batchNumber || !periodStart || !periodEnd) {
+    errEl.textContent = 'Nama brand, nomor batch, dan periode wajib diisi.';
+    errEl.classList.remove('d-none');
+    return;
+  }
+  if (periodEnd < periodStart) {
+    errEl.textContent = 'Tanggal akhir periode tidak boleh lebih awal dari tanggal mulai.';
+    errEl.classList.remove('d-none');
+    return;
+  }
+
+  // Validate engagement fields
+  const views = document.getElementById('totalViews').value;
+  const likes = document.getElementById('totalLikes').value;
+  const comments = document.getElementById('totalComments').value;
+  for (const [label, val] of [['Views', views], ['Likes', likes], ['Comments', comments]]) {
+    if (val !== '' && (isNaN(val) || !Number.isInteger(Number(val)) || Number(val) < 0)) {
+      errEl.textContent = `Nilai ${label} harus berupa angka bulat positif.`;
+      errEl.classList.remove('d-none');
+      return;
+    }
+  }
+
+  // Engagement: kirim jika field diisi (tidak kosong), termasuk nilai 0
+  const viewsNum = views !== '' ? parseInt(views) || 0 : null;
+  const likesNum = likes !== '' ? parseInt(likes) || 0 : null;
+  const commentsNum = comments !== '' ? parseInt(comments) || 0 : null;
+  
+  // FIX: Kirim engagement jika minimal satu field diisi ATAU jika ada tabel scraping yang tampil
+  const hasScrapingTable = document.getElementById('creatorEngagementWrapper') &&
+                           !document.getElementById('creatorEngagementWrapper').classList.contains('d-none');
+  const hasEngagement = (viewsNum !== null || likesNum !== null || commentsNum !== null) || hasScrapingTable;
+
+  // Kumpulkan top 5 creator berdasarkan views dari tabel scraping
+  const topCreators = [];
+  if (document.getElementById('creatorEngagementWrapper') &&
+      !document.getElementById('creatorEngagementWrapper').classList.contains('d-none')) {
+    const mainRows = document.querySelectorAll('tr.creator-main-row[data-username]');
+    
+    const creatorData = [];
+    mainRows.forEach(row => {
+      const username = row.dataset.username;
+      const rowId = row.dataset.rowId;
+      const videoCount = parseInt(row.dataset.videoCount || '0');
+      
+      // Get total dari baris utama
+      const vTotalEl = document.getElementById(`views-total-${rowId}`);
+      const lTotalEl = document.getElementById(`likes-total-${rowId}`);
+      const cTotalEl = document.getElementById(`comments-total-${rowId}`);
+      
+      if (vTotalEl && !vTotalEl.disabled) {
+        const totalViews = parseInt(vTotalEl.value) || 0;
+        const totalLikes = parseInt(lTotalEl.value) || 0;
+        const totalComments = parseInt(cTotalEl.value) || 0;
+        
+        if (totalViews > 0 || totalLikes > 0 || totalComments > 0) {
+          const creator = {
+            username,
+            total_views: totalViews,
+            total_likes: totalLikes,
+            total_comments: totalComments,
+          };
+          
+          // Jika ada >1 video, ambil detail per video
+          if (videoCount > 1) {
+            const videos = [];
+            const videoLinks = _activeVideoLinksMap[username] || [];
+            
+            for (let vidIdx = 0; vidIdx < videoCount; vidIdx++) {
+              const vEl = document.getElementById(`views-${rowId}-${vidIdx}`);
+              const lEl = document.getElementById(`likes-${rowId}-${vidIdx}`);
+              const cEl = document.getElementById(`comments-${rowId}-${vidIdx}`);
+              
+              if (vEl) {
+                const views = parseInt(vEl.value) || 0;
+                const likes = parseInt(lEl.value) || 0;
+                const comments = parseInt(cEl.value) || 0;
+                
+                if (views > 0 || likes > 0 || comments > 0) {
+                  videos.push({
+                    url: videoLinks[vidIdx] || '',
+                    views,
+                    likes,
+                    comments,
+                  });
+                }
+              }
+            }
+            
+            if (videos.length > 0) {
+              creator.videos = videos;
+            }
+          } else if (videoCount === 1) {
+            // Single video - gunakan total sebagai video data
+            const videoLinks = _activeVideoLinksMap[username] || [];
+            creator.videos = [{
+              url: videoLinks[0] || '',
+              views: totalViews,
+              likes: totalLikes,
+              comments: totalComments,
+            }];
+          }
+          
+          creatorData.push(creator);
+        }
+      }
+    });
+    
+    // Sort by views desc, ambil top 5
+    creatorData.sort((a, b) => b.total_views - a.total_views);
+    topCreators.push(...creatorData.slice(0, 5));
+    
+    console.log('[DEBUG] Top creators:', topCreators);
+  }
+
+  const payload = {
+    mapping_id: mappingId,
+    brand_name: brandName,
+    batch_number: batchNumber,
+    period_start: periodStart,
+    period_end: periodEnd,
+    prev_gmv: document.getElementById('prevGmv').value ? parseFloat(document.getElementById('prevGmv').value) : null,
+    engagement: hasEngagement ? {
+      total_views: viewsNum || 0,
+      total_likes: likesNum || 0,
+      total_comments: commentsNum || 0,
+      top_creators: topCreators,
+    } : null,
+    insight: document.getElementById('insightInput').value.trim() || null,
+    next_plan: document.getElementById('nextPlanInput').value.trim() || null,
+    sku_list: skuItems,
+    sow: document.getElementById('sowInput').value.trim() || null,
+    // Field baru
+    total_pesanan: document.getElementById('totalPesanan').value ? parseInt(document.getElementById('totalPesanan').value) : null,
+    total_produk_terjual: document.getElementById('totalProdukTerjual').value ? parseInt(document.getElementById('totalProdukTerjual').value) : null,
+    total_create_sale: document.getElementById('totalCreateSale').value ? parseInt(document.getElementById('totalCreateSale').value) : null,
+    overall_conclusion: document.getElementById('overallConclusion').value.trim() || null,
+    next_planning: document.getElementById('nextPlanning').value.trim() || null,
+    // Section images
+    section_images: Object.fromEntries(
+      Object.entries(_sectionImages).filter(([, imgs]) => imgs.length > 0)
+    ),
+  };
+
+  document.getElementById('generateProgress').classList.remove('d-none');
+  document.getElementById('btnGenerate').disabled = true;
+
+  try {
+    const res = await fetch('/api/reports/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    // Handle non-JSON response (HTML error page)
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      errEl.textContent = `Server error (${res.status}). Cek log server untuk detail.`;
+      errEl.classList.remove('d-none');
+      return;
+    }
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Gagal generate laporan.';
+      errEl.classList.remove('d-none');
+      return;
+    }
+
+    document.getElementById('downloadLink').href = data.pdf_url || `/api/reports/${data.report_id}/download`;
+    if (data.ppt_url) {
+      const pptBtn = document.getElementById('downloadPptLink');
+      pptBtn.href = data.ppt_url;
+      pptBtn.classList.remove('d-none');
+    }
+    successEl.classList.remove('d-none');
+    successEl.scrollIntoView({ behavior: 'smooth' });
+
+  } catch (err) {
+    errEl.textContent = 'Terjadi kesalahan: ' + err.message;
+    errEl.classList.remove('d-none');
+  } finally {
+    document.getElementById('generateProgress').classList.add('d-none');
+    document.getElementById('btnGenerate').disabled = false;
+  }
+}
+</script>
+{% endblock %}

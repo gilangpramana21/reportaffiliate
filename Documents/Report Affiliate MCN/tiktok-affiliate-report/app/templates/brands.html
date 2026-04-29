@@ -1,0 +1,1092 @@
+{% extends "base.html" %}
+{% block title %}Manajemen Brand{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-building me-2 text-success"></i>Manajemen Brand</h4>
+  <div class="d-flex gap-2">
+    <label class="btn btn-outline-success mb-0" title="Import SOW & SKU dari file Excel brand config">
+      <i class="bi bi-file-earmark-arrow-up me-1"></i>Import dari Excel
+      <input type="file" id="importBrandFile" accept=".xlsx,.xls" class="d-none" onchange="importBrands(this)" />
+    </label>
+    <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#addBrandModal">
+      <i class="bi bi-plus-circle me-1"></i>Tambah Brand
+    </button>
+  </div>
+</div>
+<div id="importStatus" class="alert d-none mb-3"></div>
+
+<!-- Tab Navigation -->
+<ul class="nav nav-tabs mb-4" id="brandTabs">
+  <li class="nav-item">
+    <a class="nav-link active" id="tab-profiles" href="#" onclick="switchTab('profiles'); return false;">
+      <i class="bi bi-building me-1"></i>Brand Profiles
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="tab-aliases" href="#" onclick="switchTab('aliases'); return false;">
+      <i class="bi bi-arrow-left-right me-1"></i>Brand Aliases
+      <span class="badge bg-secondary ms-1" id="aliasCountBadge">0</span>
+    </a>
+  </li>
+</ul>
+
+<!-- Brand Profiles Tab Content -->
+<div id="profilesContent">
+  <div class="card mb-4">
+    <div class="card-body p-0">
+      <div id="loadingState" class="text-center py-5">
+        <div class="spinner-border text-success"></div>
+        <p class="text-muted mt-2">Memuat data brand...</p>
+      </div>
+      <div id="emptyState" class="text-center py-5 d-none">
+        <i class="bi bi-building fs-1 text-muted"></i>
+        <p class="text-muted mt-2">Belum ada brand terdaftar.</p>
+      </div>
+      <div id="tableWrapper" class="d-none">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Nama Brand</th>
+                <th class="text-center">Jumlah SKU</th>
+                <th class="text-center">Punya Config</th>
+                <th class="text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="brandTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="errorState" class="alert alert-danger m-3 d-none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Brand Aliases Tab Content -->
+<div id="aliasesContent" class="d-none">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="text-muted mb-0">
+      <i class="bi bi-info-circle me-1"></i>
+      Kelola alias brand untuk mengelompokkan variasi nama brand yang sama
+    </p>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-info" onclick="suggestAliases()">
+        <i class="bi bi-lightbulb me-1"></i>Saran Otomatis
+      </button>
+      <button class="btn btn-sm btn-accent" data-bs-toggle="modal" data-bs-target="#addAliasModal">
+        <i class="bi bi-plus-circle me-1"></i>Tambah Alias
+      </button>
+    </div>
+  </div>
+
+  <!-- Alias Search and Filter -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Cari Alias</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" id="aliasSearchInput" class="form-control" placeholder="Cari canonical brand atau alias..." onkeyup="filterAliases()">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Urutkan berdasarkan</label>
+          <select id="aliasSortBy" class="form-select" onchange="sortAliases()">
+            <option value="canonical">Canonical Brand</option>
+            <option value="alias_count">Jumlah Alias</option>
+            <option value="created_date">Tanggal Dibuat</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button type="button" class="btn btn-outline-secondary w-100" onclick="clearAliasFilters()">
+            <i class="bi bi-x-circle me-1"></i>Reset
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body p-0">
+      <div id="aliasLoadingState" class="text-center py-5">
+        <div class="spinner-border text-success"></div>
+        <p class="text-muted mt-2">Memuat data alias...</p>
+      </div>
+      <div id="aliasEmptyState" class="text-center py-5 d-none">
+        <i class="bi bi-arrow-left-right fs-1 text-muted"></i>
+        <p class="text-muted mt-2">Belum ada alias terdaftar.</p>
+        <button class="btn btn-accent mt-2" onclick="suggestAliases()">
+          <i class="bi bi-lightbulb me-1"></i>Buat Saran Otomatis
+        </button>
+      </div>
+      <div id="aliasTableWrapper" class="d-none">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Canonical Brand</th>
+                <th>Aliases</th>
+                <th class="text-center">Jumlah Alias</th>
+                <th class="text-center">Similarity Score</th>
+                <th class="text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="aliasTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="aliasErrorState" class="alert alert-danger m-3 d-none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Brand Modal -->
+<div class="modal fade" id="addBrandModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Tambah Brand Baru</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Nama Brand <span class="text-danger">*</span></label>
+          <input type="text" id="newBrandName" class="form-control" placeholder="Nama brand" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">SKU List</label>
+          <div id="newSkuList" class="mb-2"><span class="text-muted small">Belum ada SKU.</span></div>
+          <div class="input-group input-group-sm" style="max-width:350px">
+            <input type="text" id="newSkuInput" class="form-control" placeholder="Tambah SKU..." />
+            <button class="btn btn-outline-success" type="button" onclick="addNewSku()">
+              <i class="bi bi-plus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">SOW</label>
+          <textarea id="newSowInput" class="form-control" rows="3"
+            placeholder="Scope of Work..."></textarea>
+        </div>
+        <div id="addBrandError" class="alert alert-danger d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-accent" onclick="createBrand()">
+          <i class="bi bi-save me-1"></i>Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Brand Modal -->
+<div class="modal fade" id="editBrandModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Edit Brand</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editBrandId" />
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Nama Brand</label>
+          <input type="text" id="editBrandName" class="form-control" disabled />
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">SKU List</label>
+          <div id="editSkuList" class="mb-2"></div>
+          <div class="input-group input-group-sm" style="max-width:350px">
+            <input type="text" id="editSkuInput" class="form-control" placeholder="Tambah SKU..." />
+            <button class="btn btn-outline-success" type="button" onclick="addEditSku()">
+              <i class="bi bi-plus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">SOW</label>
+          <textarea id="editSowInput" class="form-control" rows="3"></textarea>
+        </div>
+        <div id="editBrandError" class="alert alert-danger d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-accent" onclick="updateBrand()">
+          <i class="bi bi-save me-1"></i>Simpan Perubahan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Alias Modal -->
+<div class="modal fade" id="addAliasModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-arrow-left-right me-2"></i>Tambah Brand Alias
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Canonical Brand <span class="text-danger">*</span></label>
+          <input type="text" id="aliasCanonicalName" class="form-control" 
+                 placeholder="Nama brand utama (canonical)" 
+                 list="existingBrands" />
+          <datalist id="existingBrands"></datalist>
+          <div class="form-text">Brand utama yang akan menjadi nama standar</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Alias Names <span class="text-danger">*</span></label>
+          <div id="aliasNamesList" class="mb-2">
+            <span class="text-muted small">Belum ada alias.</span>
+          </div>
+          <div class="input-group">
+            <input type="text" id="aliasNameInput" class="form-control" 
+                   placeholder="Tambah nama alias..." />
+            <button class="btn btn-outline-success" type="button" onclick="addAliasName()">
+              <i class="bi bi-plus"></i>
+            </button>
+          </div>
+          <div class="form-text">Variasi nama brand yang akan diarahkan ke canonical brand</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Similarity Threshold</label>
+          <div class="row g-2 align-items-center">
+            <div class="col">
+              <input type="range" id="similarityThreshold" class="form-range" 
+                     min="0.5" max="1.0" step="0.05" value="0.8" 
+                     oninput="updateSimilarityDisplay()">
+            </div>
+            <div class="col-auto">
+              <span class="badge bg-info" id="similarityDisplay">80%</span>
+            </div>
+          </div>
+          <div class="form-text">Tingkat kemiripan minimum untuk deteksi otomatis</div>
+        </div>
+        <div id="addAliasError" class="alert alert-danger d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-accent" onclick="createAlias()">
+          <i class="bi bi-save me-1"></i>Simpan Alias
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Alias Modal -->
+<div class="modal fade" id="editAliasModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-pencil me-2"></i>Edit Brand Alias
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editAliasCanonical" />
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Canonical Brand</label>
+          <input type="text" id="editAliasCanonicalDisplay" class="form-control" disabled />
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Alias Names</label>
+          <div id="editAliasNamesList" class="mb-2"></div>
+          <div class="input-group">
+            <input type="text" id="editAliasNameInput" class="form-control" 
+                   placeholder="Tambah nama alias..." />
+            <button class="btn btn-outline-success" type="button" onclick="addEditAliasName()">
+              <i class="bi bi-plus"></i>
+            </button>
+          </div>
+        </div>
+        <div id="editAliasError" class="alert alert-danger d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-accent" onclick="updateAlias()">
+          <i class="bi bi-save me-1"></i>Simpan Perubahan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Alias Suggestions Modal -->
+<div class="modal fade" id="aliasSuggestionsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-lightbulb me-2"></i>Saran Alias Otomatis
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="suggestionsLoadingState" class="text-center py-4">
+          <div class="spinner-border text-success"></div>
+          <p class="text-muted mt-2">Menganalisis brand names...</p>
+        </div>
+        <div id="suggestionsContent" class="d-none">
+          <p class="text-muted">Brand names berikut terdeteksi mirip. Pilih yang ingin dijadikan alias:</p>
+          <div id="suggestionsList"></div>
+        </div>
+        <div id="suggestionsEmptyState" class="text-center py-4 d-none">
+          <i class="bi bi-check-circle fs-1 text-success"></i>
+          <p class="text-muted mt-2">Tidak ada brand names yang mirip ditemukan.</p>
+        </div>
+        <div id="suggestionsError" class="alert alert-danger d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-accent" onclick="applySuggestions()" id="applySuggestionsBtn" disabled>
+          <i class="bi bi-check-circle me-1"></i>Terapkan Pilihan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let newSkuItems = [];
+let editSkuItems = [];
+let aliasNames = [];
+let editAliasNames = [];
+let selectedSuggestions = new Set();
+let currentTab = 'profiles';
+
+async function loadBrands() {
+  try {
+    const res = await fetch('/api/brands');
+    const data = await res.json();
+    document.getElementById('loadingState').classList.add('d-none');
+
+    if (!res.ok) {
+      document.getElementById('errorState').textContent = data.error || 'Gagal memuat brand.';
+      document.getElementById('errorState').classList.remove('d-none');
+      return;
+    }
+
+    const brands = Array.isArray(data) ? data : (data.brands || []);
+    if (brands.length === 0) {
+      document.getElementById('emptyState').classList.remove('d-none');
+      return;
+    }
+
+    const tbody = document.getElementById('brandTableBody');
+    tbody.innerHTML = brands.map(b => `
+      <tr>
+        <td class="fw-semibold">${escHtml(b.name)}</td>
+        <td class="text-center">
+          <span class="badge bg-secondary">${(b.sku_list || []).length}</span>
+        </td>
+        <td class="text-center">
+          ${b.has_column_config
+            ? '<span class="badge bg-success"><i class="bi bi-check"></i> Ya</span>'
+            : '<span class="badge bg-light text-muted">Tidak</span>'}
+        </td>
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-primary me-1"
+            onclick='openEditModal(${JSON.stringify(b)})'>
+            <i class="bi bi-pencil"></i> Edit
+          </button>
+          <button class="btn btn-sm btn-outline-danger"
+            onclick="deleteBrand(${b.id}, '${escHtml(b.name)}')">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>`).join('');
+
+    document.getElementById('tableWrapper').classList.remove('d-none');
+    
+    // Update existing brands datalist for alias modal
+    updateExistingBrandsDatalist(brands);
+  } catch (err) {
+    document.getElementById('loadingState').classList.add('d-none');
+    document.getElementById('errorState').textContent = 'Error: ' + err.message;
+    document.getElementById('errorState').classList.remove('d-none');
+  }
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function updateExistingBrandsDatalist(brands) {
+  const datalist = document.getElementById('existingBrands');
+  datalist.innerHTML = brands.map(b => `<option value="${escHtml(b.name)}">`).join('');
+}
+
+// Tab switching functionality
+function switchTab(tabName) {
+  // Update tab navigation
+  document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+  document.getElementById(`tab-${tabName}`).classList.add('active');
+  
+  // Show/hide content
+  document.getElementById('profilesContent').classList.toggle('d-none', tabName !== 'profiles');
+  document.getElementById('aliasesContent').classList.toggle('d-none', tabName !== 'aliases');
+  
+  currentTab = tabName;
+  
+  // Load data for the active tab
+  if (tabName === 'aliases') {
+    loadAliases();
+  }
+}
+
+// Alias Management Functions
+async function loadAliases() {
+  try {
+    document.getElementById('aliasLoadingState').classList.remove('d-none');
+    document.getElementById('aliasTableWrapper').classList.add('d-none');
+    document.getElementById('aliasEmptyState').classList.add('d-none');
+    document.getElementById('aliasErrorState').classList.add('d-none');
+    
+    const res = await fetch('/api/brand-aliases');
+    const data = await res.json();
+    
+    document.getElementById('aliasLoadingState').classList.add('d-none');
+
+    if (!res.ok) {
+      document.getElementById('aliasErrorState').textContent = data.error || 'Gagal memuat alias.';
+      document.getElementById('aliasErrorState').classList.remove('d-none');
+      return;
+    }
+
+    const aliases = Array.isArray(data) ? data : (data.aliases || []);
+    
+    // Update alias count badge
+    document.getElementById('aliasCountBadge').textContent = aliases.length;
+    
+    if (aliases.length === 0) {
+      document.getElementById('aliasEmptyState').classList.remove('d-none');
+      return;
+    }
+
+    renderAliasTable(aliases);
+    document.getElementById('aliasTableWrapper').classList.remove('d-none');
+  } catch (err) {
+    document.getElementById('aliasLoadingState').classList.add('d-none');
+    document.getElementById('aliasErrorState').textContent = 'Error: ' + err.message;
+    document.getElementById('aliasErrorState').classList.remove('d-none');
+  }
+}
+
+function renderAliasTable(aliases) {
+  const tbody = document.getElementById('aliasTableBody');
+  tbody.innerHTML = aliases.map(alias => {
+    const aliasNames = alias.aliases || [];
+    const avgSimilarity = alias.similarity_scores ? 
+      (alias.similarity_scores.reduce((a, b) => a + b, 0) / alias.similarity_scores.length * 100).toFixed(0) : 
+      'N/A';
+    
+    return `
+      <tr data-canonical="${escHtml(alias.canonical_name)}">
+        <td class="fw-semibold">${escHtml(alias.canonical_name)}</td>
+        <td>
+          <div class="d-flex flex-wrap gap-1">
+            ${aliasNames.map(name => `
+              <span class="badge bg-light text-dark border">${escHtml(name)}</span>
+            `).join('')}
+          </div>
+        </td>
+        <td class="text-center">
+          <span class="badge bg-secondary">${aliasNames.length}</span>
+        </td>
+        <td class="text-center">
+          <span class="badge bg-info">${avgSimilarity}${avgSimilarity !== 'N/A' ? '%' : ''}</span>
+        </td>
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-primary me-1"
+            onclick='openEditAliasModal(${JSON.stringify(alias)})'>
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger"
+            onclick="deleteAlias('${escHtml(alias.canonical_name)}')">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Alias filtering and sorting
+function filterAliases() {
+  const searchTerm = document.getElementById('aliasSearchInput').value.toLowerCase();
+  const rows = document.querySelectorAll('#aliasTableBody tr');
+  
+  let visibleCount = 0;
+  rows.forEach(row => {
+    const canonical = row.dataset.canonical.toLowerCase();
+    const aliasText = row.cells[1].textContent.toLowerCase();
+    const matches = canonical.includes(searchTerm) || aliasText.includes(searchTerm);
+    
+    row.style.display = matches ? '' : 'none';
+    if (matches) visibleCount++;
+  });
+  
+  // Show filter results
+  showAliasFilterResults(visibleCount, rows.length);
+}
+
+function sortAliases() {
+  const sortBy = document.getElementById('aliasSortBy').value;
+  const tbody = document.getElementById('aliasTableBody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  
+  rows.sort((a, b) => {
+    switch (sortBy) {
+      case 'canonical':
+        return a.dataset.canonical.localeCompare(b.dataset.canonical);
+      case 'alias_count':
+        const countA = parseInt(a.cells[2].textContent);
+        const countB = parseInt(b.cells[2].textContent);
+        return countB - countA;
+      case 'created_date':
+        // For now, sort by canonical name as we don't have created date
+        return a.dataset.canonical.localeCompare(b.dataset.canonical);
+      default:
+        return 0;
+    }
+  });
+  
+  rows.forEach(row => tbody.appendChild(row));
+}
+
+function clearAliasFilters() {
+  document.getElementById('aliasSearchInput').value = '';
+  document.getElementById('aliasSortBy').value = 'canonical';
+  filterAliases();
+  sortAliases();
+}
+
+function showAliasFilterResults(visibleCount, totalCount) {
+  // Implementation for showing filter results
+  if (visibleCount < totalCount) {
+    console.log(`Showing ${visibleCount} of ${totalCount} aliases`);
+  }
+}
+
+// Add Alias Modal Functions
+function addAliasName() {
+  const input = document.getElementById('aliasNameInput');
+  const val = input.value.trim();
+  if (!val) return;
+  
+  if (aliasNames.includes(val)) {
+    showToast('Alias sudah ada dalam daftar', 'warning');
+    return;
+  }
+  
+  aliasNames.push(val);
+  input.value = '';
+  renderAliasNamesList();
+}
+
+function renderAliasNamesList() {
+  const el = document.getElementById('aliasNamesList');
+  if (aliasNames.length === 0) {
+    el.innerHTML = '<span class="text-muted small">Belum ada alias.</span>';
+    return;
+  }
+  
+  el.innerHTML = aliasNames.map((name, i) => `
+    <span class="badge bg-light text-dark border me-1 mb-1 p-2">
+      ${escHtml(name)}
+      <button type="button" class="btn-close btn-close-sm ms-1" style="font-size:.6rem"
+        onclick="aliasNames.splice(${i},1);renderAliasNamesList()"></button>
+    </span>
+  `).join('');
+}
+
+function updateSimilarityDisplay() {
+  const threshold = document.getElementById('similarityThreshold').value;
+  document.getElementById('similarityDisplay').textContent = Math.round(threshold * 100) + '%';
+}
+
+async function createAlias() {
+  const canonicalName = document.getElementById('aliasCanonicalName').value.trim();
+  const threshold = parseFloat(document.getElementById('similarityThreshold').value);
+  const errEl = document.getElementById('addAliasError');
+  
+  errEl.classList.add('d-none');
+
+  if (!canonicalName) {
+    errEl.textContent = 'Canonical brand name wajib diisi.';
+    errEl.classList.remove('d-none');
+    return;
+  }
+  
+  if (aliasNames.length === 0) {
+    errEl.textContent = 'Minimal satu alias harus ditambahkan.';
+    errEl.classList.remove('d-none');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/brand-aliases', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        canonical_name: canonicalName,
+        aliases: aliasNames,
+        similarity_threshold: threshold
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Gagal menyimpan alias.';
+      errEl.classList.remove('d-none');
+      return;
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById('addAliasModal')).hide();
+    resetAliasModal();
+    loadAliases();
+    showToast('Alias berhasil ditambahkan', 'success');
+  } catch (err) {
+    errEl.textContent = 'Error: ' + err.message;
+    errEl.classList.remove('d-none');
+  }
+}
+
+function resetAliasModal() {
+  document.getElementById('aliasCanonicalName').value = '';
+  document.getElementById('aliasNameInput').value = '';
+  document.getElementById('similarityThreshold').value = '0.8';
+  updateSimilarityDisplay();
+  aliasNames = [];
+  renderAliasNamesList();
+}
+
+// Edit Alias Modal Functions
+function openEditAliasModal(alias) {
+  document.getElementById('editAliasCanonical').value = alias.canonical_name;
+  document.getElementById('editAliasCanonicalDisplay').value = alias.canonical_name;
+  editAliasNames = [...(alias.aliases || [])];
+  renderEditAliasNamesList();
+  document.getElementById('editAliasError').classList.add('d-none');
+  new bootstrap.Modal(document.getElementById('editAliasModal')).show();
+}
+
+function addEditAliasName() {
+  const input = document.getElementById('editAliasNameInput');
+  const val = input.value.trim();
+  if (!val) return;
+  
+  if (editAliasNames.includes(val)) {
+    showToast('Alias sudah ada dalam daftar', 'warning');
+    return;
+  }
+  
+  editAliasNames.push(val);
+  input.value = '';
+  renderEditAliasNamesList();
+}
+
+function renderEditAliasNamesList() {
+  const el = document.getElementById('editAliasNamesList');
+  if (editAliasNames.length === 0) {
+    el.innerHTML = '<span class="text-muted small">Belum ada alias.</span>';
+    return;
+  }
+  
+  el.innerHTML = editAliasNames.map((name, i) => `
+    <span class="badge bg-light text-dark border me-1 mb-1 p-2">
+      ${escHtml(name)}
+      <button type="button" class="btn-close btn-close-sm ms-1" style="font-size:.6rem"
+        onclick="editAliasNames.splice(${i},1);renderEditAliasNamesList()"></button>
+    </span>
+  `).join('');
+}
+
+async function updateAlias() {
+  const canonicalName = document.getElementById('editAliasCanonical').value;
+  const errEl = document.getElementById('editAliasError');
+  
+  errEl.classList.add('d-none');
+
+  if (editAliasNames.length === 0) {
+    errEl.textContent = 'Minimal satu alias harus ada.';
+    errEl.classList.remove('d-none');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/brand-aliases/${encodeURIComponent(canonicalName)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        aliases: editAliasNames
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Gagal mengupdate alias.';
+      errEl.classList.remove('d-none');
+      return;
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById('editAliasModal')).hide();
+    loadAliases();
+    showToast('Alias berhasil diupdate', 'success');
+  } catch (err) {
+    errEl.textContent = 'Error: ' + err.message;
+    errEl.classList.remove('d-none');
+  }
+}
+
+async function deleteAlias(canonicalName) {
+  if (!confirm(`Hapus semua alias untuk "${canonicalName}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+  
+  try {
+    const res = await fetch(`/api/brand-aliases/${encodeURIComponent(canonicalName)}`, {
+      method: 'DELETE'
+    });
+    
+    if (res.ok || res.status === 204) {
+      loadAliases();
+      showToast('Alias berhasil dihapus', 'success');
+    } else {
+      const data = await res.json();
+      showToast(data.error || 'Gagal menghapus alias.', 'danger');
+    }
+  } catch (err) {
+    showToast('Error: ' + err.message, 'danger');
+  }
+}
+
+// Alias Suggestions Functions
+async function suggestAliases() {
+  const modal = new bootstrap.Modal(document.getElementById('aliasSuggestionsModal'));
+  modal.show();
+  
+  // Reset state
+  document.getElementById('suggestionsLoadingState').classList.remove('d-none');
+  document.getElementById('suggestionsContent').classList.add('d-none');
+  document.getElementById('suggestionsEmptyState').classList.add('d-none');
+  document.getElementById('suggestionsError').classList.add('d-none');
+  selectedSuggestions.clear();
+  
+  try {
+    const res = await fetch('/api/brand-aliases/suggestions');
+    const data = await res.json();
+    
+    document.getElementById('suggestionsLoadingState').classList.add('d-none');
+    
+    if (!res.ok) {
+      document.getElementById('suggestionsError').textContent = data.error || 'Gagal mendapatkan saran.';
+      document.getElementById('suggestionsError').classList.remove('d-none');
+      return;
+    }
+    
+    const suggestions = data.suggestions || [];
+    
+    if (suggestions.length === 0) {
+      document.getElementById('suggestionsEmptyState').classList.remove('d-none');
+      return;
+    }
+    
+    renderSuggestions(suggestions);
+    document.getElementById('suggestionsContent').classList.remove('d-none');
+  } catch (err) {
+    document.getElementById('suggestionsLoadingState').classList.add('d-none');
+    document.getElementById('suggestionsError').textContent = 'Error: ' + err.message;
+    document.getElementById('suggestionsError').classList.remove('d-none');
+  }
+}
+
+function renderSuggestions(suggestions) {
+  const container = document.getElementById('suggestionsList');
+  container.innerHTML = suggestions.map((suggestion, index) => `
+    <div class="suggestion-item border rounded p-3 mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="suggestion_${index}" 
+                 onchange="toggleSuggestion(${index}, this.checked)">
+          <label class="form-check-label fw-semibold" for="suggestion_${index}">
+            Group Similar Brands
+          </label>
+        </div>
+        <span class="badge bg-info">${Math.round(suggestion.similarity * 100)}% similar</span>
+      </div>
+      <div class="brand-pair d-flex align-items-center gap-2">
+        <span class="badge bg-primary">${escHtml(suggestion.brand1)}</span>
+        <i class="bi bi-arrow-left-right text-muted"></i>
+        <span class="badge bg-primary">${escHtml(suggestion.brand2)}</span>
+      </div>
+      <div class="mt-2">
+        <small class="text-muted">
+          Will create alias: "${suggestion.brand2}" → "${suggestion.brand1}"
+        </small>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleSuggestion(index, checked) {
+  if (checked) {
+    selectedSuggestions.add(index);
+  } else {
+    selectedSuggestions.delete(index);
+  }
+  
+  document.getElementById('applySuggestionsBtn').disabled = selectedSuggestions.size === 0;
+}
+
+async function applySuggestions() {
+  if (selectedSuggestions.size === 0) return;
+  
+  const suggestions = Array.from(document.querySelectorAll('.suggestion-item'))
+    .map((item, index) => {
+      if (!selectedSuggestions.has(index)) return null;
+      
+      const brands = item.querySelectorAll('.badge.bg-primary');
+      return {
+        canonical_name: brands[0].textContent.trim(),
+        alias_name: brands[1].textContent.trim()
+      };
+    })
+    .filter(Boolean);
+  
+  try {
+    const res = await fetch('/api/brand-aliases/apply-suggestions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ suggestions })
+    });
+    
+    const data = await res.json();
+    
+    if (res.ok) {
+      bootstrap.Modal.getInstance(document.getElementById('aliasSuggestionsModal')).hide();
+      loadAliases();
+      showToast(`${data.applied} alias berhasil diterapkan`, 'success');
+    } else {
+      document.getElementById('suggestionsError').textContent = data.error || 'Gagal menerapkan saran.';
+      document.getElementById('suggestionsError').classList.remove('d-none');
+    }
+  } catch (err) {
+    document.getElementById('suggestionsError').textContent = 'Error: ' + err.message;
+    document.getElementById('suggestionsError').classList.remove('d-none');
+  }
+}
+
+// Toast notification function
+function showToast(message, type = 'info') {
+  const div = document.createElement('div');
+  div.className = `alert alert-${type} alert-dismissible fade show position-fixed bottom-0 end-0 m-3`;
+  div.style.zIndex = 9999;
+  div.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+  document.body.appendChild(div);
+  
+  setTimeout(() => {
+    if (div.parentNode) {
+      div.parentNode.removeChild(div);
+    }
+  }, 5000);
+}
+
+// --- New Brand ---
+function addNewSku() {
+  const input = document.getElementById('newSkuInput');
+  const val = input.value.trim();
+  if (!val) return;
+  newSkuItems.push(val);
+  input.value = '';
+  renderNewSkuList();
+}
+document.getElementById('newSkuInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addNewSku(); }
+});
+function renderNewSkuList() {
+  const el = document.getElementById('newSkuList');
+  if (newSkuItems.length === 0) { el.innerHTML = '<span class="text-muted small">Belum ada SKU.</span>'; return; }
+  el.innerHTML = newSkuItems.map((s, i) => `
+    <span class="badge bg-light text-dark border me-1 mb-1 p-2">
+      ${escHtml(s)}
+      <button type="button" class="btn-close btn-close-sm ms-1" style="font-size:.6rem"
+        onclick="newSkuItems.splice(${i},1);renderNewSkuList()"></button>
+    </span>`).join('');
+}
+
+async function createBrand() {
+  const name = document.getElementById('newBrandName').value.trim();
+  const sow = document.getElementById('newSowInput').value.trim();
+  const errEl = document.getElementById('addBrandError');
+  errEl.classList.add('d-none');
+
+  if (!name) { errEl.textContent = 'Nama brand wajib diisi.'; errEl.classList.remove('d-none'); return; }
+
+  try {
+    const res = await fetch('/api/brands', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, sku_list: newSkuItems, sow })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Gagal menyimpan.'; errEl.classList.remove('d-none'); return; }
+
+    bootstrap.Modal.getInstance(document.getElementById('addBrandModal')).hide();
+    newSkuItems = [];
+    document.getElementById('newBrandName').value = '';
+    document.getElementById('newSowInput').value = '';
+    renderNewSkuList();
+    reloadTable();
+    showToast('Brand berhasil ditambahkan', 'success');
+  } catch (err) {
+    errEl.textContent = 'Error: ' + err.message;
+    errEl.classList.remove('d-none');
+  }
+}
+
+// --- Edit Brand ---
+function openEditModal(brand) {
+  document.getElementById('editBrandId').value = brand.id;
+  document.getElementById('editBrandName').value = brand.name;
+  editSkuItems = [...(brand.sku_list || [])];
+  document.getElementById('editSowInput').value = brand.sow || '';
+  renderEditSkuList();
+  document.getElementById('editBrandError').classList.add('d-none');
+  new bootstrap.Modal(document.getElementById('editBrandModal')).show();
+}
+
+function addEditSku() {
+  const input = document.getElementById('editSkuInput');
+  const val = input.value.trim();
+  if (!val) return;
+  editSkuItems.push(val);
+  input.value = '';
+  renderEditSkuList();
+}
+document.getElementById('editSkuInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addEditSku(); }
+});
+function renderEditSkuList() {
+  const el = document.getElementById('editSkuList');
+  if (editSkuItems.length === 0) { el.innerHTML = '<span class="text-muted small">Belum ada SKU.</span>'; return; }
+  el.innerHTML = editSkuItems.map((s, i) => `
+    <span class="badge bg-light text-dark border me-1 mb-1 p-2">
+      ${escHtml(s)}
+      <button type="button" class="btn-close btn-close-sm ms-1" style="font-size:.6rem"
+        onclick="editSkuItems.splice(${i},1);renderEditSkuList()"></button>
+    </span>`).join('');
+}
+
+async function updateBrand() {
+  const id = document.getElementById('editBrandId').value;
+  const sow = document.getElementById('editSowInput').value.trim();
+  const errEl = document.getElementById('editBrandError');
+  errEl.classList.add('d-none');
+
+  try {
+    const res = await fetch(`/api/brands/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sku_list: editSkuItems, sow })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Gagal update.'; errEl.classList.remove('d-none'); return; }
+
+    bootstrap.Modal.getInstance(document.getElementById('editBrandModal')).hide();
+    reloadTable();
+    showToast('Brand berhasil diupdate', 'success');
+  } catch (err) {
+    errEl.textContent = 'Error: ' + err.message;
+    errEl.classList.remove('d-none');
+  }
+}
+
+async function deleteBrand(id, name) {
+  if (!confirm(`Hapus brand "${name}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+  try {
+    const res = await fetch(`/api/brands/${id}`, { method: 'DELETE' });
+    if (res.ok || res.status === 204) {
+      reloadTable();
+      showToast('Brand berhasil dihapus', 'success');
+    } else {
+      const data = await res.json();
+      showToast(data.error || 'Gagal menghapus brand.', 'danger');
+    }
+  } catch (err) {
+    showToast('Error: ' + err.message, 'danger');
+  }
+}
+
+function reloadTable() {
+  document.getElementById('tableWrapper').classList.add('d-none');
+  document.getElementById('emptyState').classList.add('d-none');
+  document.getElementById('errorState').classList.add('d-none');
+  document.getElementById('loadingState').classList.remove('d-none');
+  loadBrands();
+}
+
+async function importBrands(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('importStatus');
+  statusEl.className = 'alert alert-info mb-3';
+  statusEl.textContent = 'Mengimport data brand...';
+  statusEl.classList.remove('d-none');
+  const formData = new FormData();
+  formData.append('file', file);
+  input.value = '';
+  try {
+    const res = await fetch('/api/brands/import', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (res.ok) {
+      statusEl.className = 'alert alert-success mb-3';
+      statusEl.textContent = `Import selesai: ${data.imported} brand baru, ${data.updated} diupdate.${data.errors?.length ? ' Errors: ' + data.errors.join(', ') : ''}`;
+      reloadTable();
+    } else {
+      statusEl.className = 'alert alert-danger mb-3';
+      statusEl.textContent = data.error || 'Import gagal.';
+    }
+  } catch (err) {
+    statusEl.className = 'alert alert-danger mb-3';
+    statusEl.textContent = 'Error: ' + err.message;
+  }
+}
+
+loadBrands();
+
+// Event listeners for alias modal inputs
+document.addEventListener('DOMContentLoaded', function() {
+  // Alias name input event listener
+  const aliasNameInput = document.getElementById('aliasNameInput');
+  if (aliasNameInput) {
+    aliasNameInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addAliasName(); }
+    });
+  }
+
+  // Edit alias name input event listener
+  const editAliasNameInput = document.getElementById('editAliasNameInput');
+  if (editAliasNameInput) {
+    editAliasNameInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addEditAliasName(); }
+    });
+  }
+
+  // Initialize similarity display
+  updateSimilarityDisplay();
+});
+
+</script>
+{% endblock %}
