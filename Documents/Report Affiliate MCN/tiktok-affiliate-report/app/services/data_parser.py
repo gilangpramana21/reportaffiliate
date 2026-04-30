@@ -518,10 +518,20 @@ class DataParser:
             has_col_keyword = any(
                 kw in v.upper()
                 for v in sub_values if v
-                for kw in ['VT', 'GMV', 'NOTE', 'USERNAME', 'JUMLAH', 'TOTAL', 'UPDATE']
+                for kw in ['VT', 'GMV', 'NOTE', 'USERNAME', 'JUMLAH', 'TOTAL', 'UPDATE', 'SAMPEL', 'LINK']
             )
 
-            if matches > 0 or (has_col_keyword and sum(1 for v in sub_values if v) <= 8):
+            # Cek apakah baris ini adalah data (bukan header)
+            # Data biasanya berisi tanggal, URL, angka — bukan nama kolom
+            has_data_pattern = any(
+                any(pat in str(v) for pat in ['http', 'tiktok.com', 'February', 'March', 'January', 'April'])
+                for v in sub_values if v
+            )
+
+            if has_data_pattern:
+                break  # Ini baris data, bukan sub-header
+
+            if matches > 0 or has_col_keyword:
                 sub_header_rows.append(sub_values)
             else:
                 break
@@ -852,13 +862,26 @@ class DataParser:
                 # Potong di koma pertama jika ada (tanggal sering dipisah koma)
                 if ',' in url:
                     url = url.split(',')[0].strip()
+                
+                # Potong jika ada URL lain yang langsung bersambung
+                # Cari pattern: ...?param=valuehttps:// atau ...video/123456https://
+                next_url = _re.search(r'(https?://)', url[8:])  # Skip first https://
+                if next_url:
+                    url = url[:8 + next_url.start()]
+                
                 # Hapus trailing punctuation
-                url = url.rstrip('.,;:!?')
+                url = url.rstrip('.,;:!?_')
+                
                 # Pastikan URL valid
                 if not url.startswith('http'):
                     return ''
                 if 'tiktok' not in url.lower():
                     return ''
+                
+                # Hapus trailing underscore atau karakter aneh di akhir
+                # yang mungkin dari pemisahan yang salah
+                url = _re.sub(r'[_\-]+$', '', url)
+                
                 return url
 
             def _extract_urls_from_text(text: str) -> list[str]:
@@ -871,13 +894,37 @@ class DataParser:
                 urls = []
                 
                 # Method 1: Regex extraction (paling reliable)
+                # Improved pattern to handle URLs that are concatenated
                 found_urls = _url_re.findall(text)
                 for url in found_urls:
                     cleaned = _clean_url(url)
                     if cleaned and cleaned not in urls:
                         urls.append(cleaned)
                 
-                # Method 2: Split by newline/comma dan coba parse each part
+                # Method 2: Handle concatenated URLs (no separator between them)
+                # Look for pattern: ...video/123456https://... or ...?param=valuehttps://...
+                if 'httpshttps' in text.lower() or text.count('https://') > len(urls):
+                    # Split by 'https://' and reconstruct URLs
+                    parts = text.split('https://')
+                    for i, part in enumerate(parts):
+                        if i == 0 and not part.startswith('http'):
+                            continue  # Skip first part if it doesn't start with http
+                        
+                        # Reconstruct URL
+                        url = 'https://' + part
+                        
+                        # Find where this URL ends (next https:// or http:// or end of string)
+                        # Look for the next URL start
+                        next_url_match = _re.search(r'(https?://)', url[8:])  # Skip the first https://
+                        if next_url_match:
+                            # Cut at the next URL
+                            url = url[:8 + next_url_match.start()]
+                        
+                        cleaned = _clean_url(url)
+                        if cleaned and 'tiktok' in cleaned.lower() and cleaned not in urls:
+                            urls.append(cleaned)
+                
+                # Method 3: Split by newline/comma dan coba parse each part
                 if not urls:
                     parts = _re.split(r'[\n\r,;]+', text)
                     for part in parts:

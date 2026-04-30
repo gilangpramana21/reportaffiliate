@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Panduan TikTok Affiliate Report</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; color: #222; line-height: 1.7; }
+  h1 { color: #1a73e8; border-bottom: 3px solid #1a73e8; padding-bottom: 8px; }
+  h2 { color: #1a73e8; margin-top: 36px; }
+  h3 { color: #333; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th { background: #1a73e8; color: white; padding: 8px 12px; text-align: left; }
+  td { border: 1px solid #ddd; padding: 8px 12px; }
+  tr:nth-child(even) { background: #f5f5f5; }
+  .step { background: #e8f0fe; border-left: 4px solid #1a73e8; padding: 10px 16px; margin: 10px 0; border-radius: 4px; }
+  .warning { background: #fff3cd; border-left: 4px solid #f0ad4e; padding: 10px 16px; margin: 10px 0; border-radius: 4px; }
+  .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 10px 16px; margin: 10px 0; border-radius: 4px; }
+  code { background: #f1f3f4; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+  .flow { background: #f8f9fa; border: 1px solid #dee2e6; padding: 16px; border-radius: 6px; font-family: monospace; line-height: 2; }
+  .num { display: inline-block; background: #1a73e8; color: white; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 13px; margin-right: 8px; }
+</style>
+</head>
+<body>
+
+<h1>📋 Panduan Lengkap — TikTok Affiliate Report</h1>
+<p><em>Dari ambil cookie sampai jadi PPT/PDF</em> &nbsp;|&nbsp; Akses: <strong>http://72.62.244.186:8082</strong></p>
+
+<hr>
+
+<h2>BAGIAN 1 — Ambil Cookie TikTok</h2>
+<p>Cookie dibutuhkan agar scraping bisa mengambil data Views/Likes/Comments dengan akurat.</p>
+
+<div class="step"><strong>Cara pakai ekstensi (paling mudah):</strong></div>
+<ol>
+  <li>Install ekstensi Chrome: <strong>Cookie-Editor</strong> (cari di Chrome Web Store)</li>
+  <li>Buka <code>tiktok.com</code> → login akun TikTok kamu</li>
+  <li>Klik ikon ekstensi Cookie-Editor di toolbar browser</li>
+  <li>Klik tombol <strong>Export</strong> → copy semua teks yang muncul</li>
+  <li>Buka <code>http://72.62.244.186:8082/settings</code></li>
+  <li>Paste di kolom <strong>TikTok Cookies</strong> → klik <strong>Simpan</strong></li>
+</ol>
+
+<div class="warning">⚠️ Cookie hanya perlu diisi sekali. Jika scraping mulai gagal, ulangi langkah ini karena cookie sudah expired.</div>
+
+<hr>
+
+<h2>BAGIAN 2 — Upload File Excel</h2>
+<ol>
+  <li>Buka <code>http://72.62.244.186:8082</code></li>
+  <li>Klik <strong>Pilih File</strong> → pilih file Excel kamu (<code>.xlsx</code>)</li>
+  <li>Klik <strong>Upload</strong></li>
+  <li>Tunggu muncul notifikasi hijau "Parse selesai"</li>
+</ol>
+
+<div class="tip">✅ Pastikan file Excel punya kolom: <code>USERNAME</code>, <code>LINK ACC</code>, <code>AVG GMV/MONTH</code>, dan kolom link video seperti <code>UPDATE VT [FOLLOWUP]</code></div>
+
+<hr>
+
+<h2>BAGIAN 3 — Konfigurasi Laporan</h2>
+<p>Setelah upload, isi form berikut di halaman Konfigurasi:</p>
+
+<table>
+  <tr><th>Field</th><th>Contoh</th></tr>
+  <tr><td>Nama Brand</td><td>Florist</td></tr>
+  <tr><td>Nomor Batch</td><td>1</td></tr>
+  <tr><td>Periode Mulai</td><td>01/02/2026</td></tr>
+  <tr><td>Periode Akhir</td><td>31/03/2026</td></tr>
+  <tr><td>GMV Batch Sebelumnya</td><td>5000000000 <em>(opsional)</em></td></tr>
+</table>
+
+<p>Lalu klik tombol <strong>Apply Mapping</strong> (hijau).</p>
+
+<hr>
+
+<h2>BAGIAN 4 — Scraping Data Engagement</h2>
+<p>Setelah Apply Mapping, scroll ke bawah ke bagian <strong>Data Engagement</strong>.</p>
+
+<ol>
+  <li>Klik <strong>Scrape 20 Creator</strong> untuk test dulu</li>
+  <li>Tunggu progress bar berjalan — estimasi ~4–6 menit untuk 20 creator</li>
+  <li>Jika hasilnya bagus (ada angka Views/Likes), klik <strong>Scrape Semua</strong></li>
+  <li>Tunggu sampai selesai — <strong>jangan tutup browser</strong></li>
+</ol>
+
+<table>
+  <tr><th>Tampilan</th><th>Artinya</th></tr>
+  <tr><td>Angka (misal 39.500)</td><td>✅ Berhasil di-scrape</td></tr>
+  <tr><td>N/A</td><td>Tidak ada link video di Excel</td></tr>
+  <tr><td>—</td><td>Belum di-scrape</td></tr>
+  <tr><td>🔗</td><td>1 link video</td></tr>
+  <tr><td>🔗×2</td><td>2+ link video (klik &gt; untuk expand)</td></tr>
+</table>
+
+<table>
+  <tr><th>Jumlah Creator</th><th>Estimasi Waktu</th></tr>
+  <tr><td>20 creator</td><td>~4–6 menit</td></tr>
+  <tr><td>50 creator</td><td>~10–15 menit</td></tr>
+  <tr><td>100 creator</td><td>~20–30 menit</td></tr>
+  <tr><td>145 creator</td><td>~30–45 menit</td></tr>
+</table>
+
+<div class="warning">⚠️ Jika muncul peringatan <strong>"Mapping Lama Terdeteksi"</strong> → klik tombol <strong>Re-parse File</strong> terlebih dahulu.</div>
+
+<hr>
+
+<h2>BAGIAN 5 — Isi Data Tambahan (Opsional)</h2>
+<ul>
+  <li><strong>Brand Profile</strong> → SKU produk, SOW (Scope of Work)</li>
+  <li><strong>Insight</strong> → catatan performa batch ini</li>
+  <li><strong>Next Plan</strong> → rencana batch berikutnya</li>
+  <li><strong>Engagement manual</strong> → jika scraping gagal, isi Views/Likes/Comments manual di tabel</li>
+</ul>
+
+<hr>
+
+<h2>BAGIAN 6 — Generate Laporan (PPT / PDF)</h2>
+<ol>
+  <li>Scroll ke bawah ke bagian <strong>Generate Laporan</strong></li>
+  <li>Pilih format: <strong>PPT</strong> atau <strong>PDF</strong> (atau keduanya)</li>
+  <li>Klik tombol <strong>Generate</strong></li>
+  <li>Tunggu proses selesai (biasanya 10–30 detik)</li>
+  <li>Klik <strong>Download PPT</strong> atau <strong>Download PDF</strong></li>
+</ol>
+
+<div class="tip">✅ File akan otomatis terdownload ke komputer kamu.</div>
+
+<hr>
+
+<h2>BAGIAN 7 — Copy ke Google Docs / Word</h2>
+
+<h3>Untuk PPT → Google Slides:</h3>
+<ol>
+  <li>Buka <a href="https://slides.google.com">slides.google.com</a></li>
+  <li>Klik <strong>Blank presentation</strong></li>
+  <li>Klik menu <strong>File</strong> → <strong>Import slides</strong></li>
+  <li>Upload file <code>.pptx</code> yang sudah didownload</li>
+  <li>Pilih semua slide → klik <strong>Import slides</strong></li>
+</ol>
+
+<h3>Untuk PDF → Google Docs:</h3>
+<ol>
+  <li>Buka <a href="https://drive.google.com">drive.google.com</a></li>
+  <li>Upload file PDF</li>
+  <li>Klik kanan file PDF → <strong>Open with</strong> → <strong>Google Docs</strong></li>
+  <li>Google Docs akan otomatis convert PDF ke teks yang bisa diedit</li>
+</ol>
+
+<hr>
+
+<h2>Ringkasan Alur Cepat</h2>
+<div class="flow">
+  <span class="num">1</span> Login TikTok → Ambil Cookie → Paste di Settings<br>
+  <span class="num">2</span> Upload File Excel<br>
+  <span class="num">3</span> Isi Form (Brand, Batch, Periode) → Apply Mapping<br>
+  <span class="num">4</span> Scrape 20 Creator (test) → Scrape Semua<br>
+  <span class="num">5</span> Generate PPT / PDF<br>
+  <span class="num">6</span> Download → Import ke Google Slides / Docs
+</div>
+
+<hr>
+
+<h2>Troubleshooting Cepat</h2>
+<table>
+  <tr><th>Masalah</th><th>Solusi</th></tr>
+  <tr><td>Scraping semua N/A</td><td>File Excel tidak punya kolom link video</td></tr>
+  <tr><td>Views = 0 setelah scrape</td><td>Cookie expired, ambil ulang cookie</td></tr>
+  <tr><td>"parse_id tidak ditemukan"</td><td>Upload ulang file Excel</td></tr>
+  <tr><td>"mapping_id tidak ditemukan"</td><td>Klik Apply Mapping ulang</td></tr>
+  <tr><td>Scraping tidak mulai</td><td>Refresh halaman, lalu Apply Mapping ulang</td></tr>
+  <tr><td>PPT tidak bisa dibuka</td><td>Download ulang, pastikan ekstensi .pptx</td></tr>
+  <tr><td>Link video tidak terbaca semua</td><td>Sistem sudah otomatis memisahkan link yang bersambungan. Jika masih ada masalah, pisahkan link dengan Enter atau koma di Excel</td></tr>
+  <tr><td>Jumlah video kurang dari yang ada di Excel</td><td>Klik Re-parse File untuk parsing ulang dengan algoritma terbaru</td></tr>
+</table>
+
+<hr>
+<p style="color:#888; font-size:13px; text-align:center;">Akses aplikasi: <strong>http://72.62.244.186:8082</strong></p>
+
+</body>
+</html>
