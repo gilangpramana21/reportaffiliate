@@ -376,10 +376,13 @@ async def _scrape_batch_async(
     creator_url_map: {username: [url1, url2, ...]}
     Mengembalikan list CreatorEngagement.
     """
-    from playwright.async_api import async_playwright
+    from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
     import re as _re
 
     results: list[CreatorEngagement] = []
+    browser = None
+    context = None
+    page = None
 
     try:
         async with async_playwright() as p:
@@ -426,42 +429,56 @@ async def _scrape_batch_async(
 
                 for url in video_urls:
                     try:
-                        await page.goto(url, wait_until='domcontentloaded', timeout=25000)
+                        # Timeout lebih pendek untuk menghindari stuck
+                        await page.goto(url, wait_until='domcontentloaded', timeout=15000)
                         try:
                             await page.wait_for_selector(
                                 '[data-e2e="like-count"], [data-e2e="browse-like-count"]',
-                                timeout=6000
+                                timeout=5000
                             )
-                        except Exception:
-                            await page.wait_for_timeout(3000)
+                        except PlaywrightTimeout:
+                            # Jika selector tidak muncul, tunggu sebentar dan lanjut
+                            await page.wait_for_timeout(2000)
 
                         vs = VideoStats(url=url)
 
+                        # Likes
                         for sel in ['[data-e2e="like-count"]', '[data-e2e="browse-like-count"]',
                                     'strong[data-e2e="like-count"]']:
-                            el = await page.query_selector(sel)
-                            if el:
-                                t = await el.inner_text()
-                                if t and t.strip():
-                                    vs.likes = _parse_count(t.strip())
-                                    break
+                            try:
+                                el = await page.query_selector(sel)
+                                if el:
+                                    t = await el.inner_text()
+                                    if t and t.strip():
+                                        vs.likes = _parse_count(t.strip())
+                                        break
+                            except Exception:
+                                continue
 
+                        # Comments
                         for sel in ['[data-e2e="comment-count"]', '[data-e2e="browse-comment-count"]',
                                     'strong[data-e2e="comment-count"]']:
-                            el = await page.query_selector(sel)
-                            if el:
-                                t = await el.inner_text()
-                                if t and t.strip():
-                                    vs.comments = _parse_count(t.strip())
-                                    break
+                            try:
+                                el = await page.query_selector(sel)
+                                if el:
+                                    t = await el.inner_text()
+                                    if t and t.strip():
+                                        vs.comments = _parse_count(t.strip())
+                                        break
+                            except Exception:
+                                continue
 
-                        html = await page.content()
-                        for pat in [r'"playCount"\s*:\s*(\d+)', r'"play_count"\s*:\s*(\d+)',
-                                    r'"stats":\{"playCount":(\d+)']:
-                            m = _re.search(pat, html)
-                            if m:
-                                vs.views = int(m.group(1))
-                                break
+                        # Views dari HTML
+                        try:
+                            html = await page.content()
+                            for pat in [r'"playCount"\s*:\s*(\d+)', r'"play_count"\s*:\s*(\d+)',
+                                        r'"stats":\{"playCount":(\d+)']:
+                                m = _re.search(pat, html)
+                                if m:
+                                    vs.views = int(m.group(1))
+                                    break
+                        except Exception:
+                            pass
 
                         result.videos.append(vs)
                         result.total_views += vs.views
@@ -469,10 +486,18 @@ async def _scrape_batch_async(
                         result.total_comments += vs.comments
                         result.video_count += 1
 
-                        # Delay lebih pendek karena reuse browser (sudah warm)
-                        await page.wait_for_timeout(800)
+                        # Delay lebih pendek
+                        await page.wait_for_timeout(500)
 
-                    except Exception:
+                    except PlaywrightTimeout:
+                        # Timeout, skip video ini dan lanjut
+                        import sys as _sys
+                        print(f"[SCRAPER] Timeout for {url}, skipping...", file=_sys.stderr)
+                        continue
+                    except Exception as e:
+                        # Error lain, skip dan lanjut
+                        import sys as _sys
+                        print(f"[SCRAPER] Error scraping {url}: {e}, skipping...", file=_sys.stderr)
                         continue
 
                 if result.video_count == 0:
@@ -481,13 +506,39 @@ async def _scrape_batch_async(
                 results.append(result)
 
                 if progress_callback:
-                    progress_callback(username, result)
+                    try:
+                        progress_callback(username, result)
+                    except Exception:
+                        pass
 
-            await browser.close()
+            # Close browser dengan proper cleanup
+            try:
+                if page:
+                    await page.close()
+                if context:
+                    await context.close()
+                if browser:
+                    await browser.close()
+            except Exception:
+                pass
 
     except Exception as exc:
-        # Jika browser crash, return hasil yang sudah ada
-        pass
+        # Jika browser crash, log error dan return hasil yang sudah ada
+        import sys as _sys
+        print(f"[SCRAPER] _scrape_batch_async error: {exc}", file=_sys.stderr)
+        import traceback as _tb
+        _tb.print_exc(file=_sys.stderr)
+        
+        # Cleanup browser jika masih ada
+        try:
+            if page:
+                await page.close()
+            if context:
+                await context.close()
+            if browser:
+                await browser.close()
+        except Exception:
+            pass
 
     return results
 
